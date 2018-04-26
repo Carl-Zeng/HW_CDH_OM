@@ -1,0 +1,82 @@
+Sqoop  
+1 Sqoop 是一组工具集，包含了RDBS 与Hadoop 数据交互的多种工具。这些工具 主要包括Import，Export等
+2 基本设置
+$SQOOP_HOME
+$HADOOP_HOME
+3 Import  工具介绍 
+======================================================================
+#选择Sqoop Import工具
+$ sqoop  import
+#设置数据连接信息
+#可以选择多种密码安全措施
+--connect jdbc:mysql://database.example.com/employees \
+--username dbuser  --password-file ${user.home}/.password-alias  \
+#选择数据源
+#有两种选择方式
+#--------------------方法一--------------------------------
+#通过制定多个参数
+--table  ${tablename}  \
+--columns "name,employee_id,jobtitle"  \
+--where "id > 400"
+#------------------方法二-----------------------------------  
+#或者通过query的方式选择数据
+--query 'SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE $CONDITIONS' 
+ --split-by a.id --target-dir /user/foo/joinresults
+#或者
+--query “SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE \$CONDITIONS”\
+-m 1 --target-dir /user/foo/joinresults
+
+#以上两种方式指定了平行执行的模式，-m  选择单个map执行，--split-by 执行了并行执行的split字段，当没有分割字段时，默认选择单个key作为分割字段。
+#指定hive 参数
+--hive-import   --hive-table   test.demo
+
+
+
+
+
+
+Sqoop 数据导出
+Sqoop export
+sqoop  export   --connect  jdbc:mysql://172.17.17.90:3306/test   --username root  --password  huawei  --export-dir  hdfs://cscloud-citus-mppdb-14.huawei.com:8020/user/hive/warehouse/test.db/demo     --table demo  --fields-terminated-by  "\001"
+#export 默认导入的是HDFS文件，模式是insert 。
+#文件需要指定分隔符。
+#若通过—cloumns  指定特定列，没有指定的列必须指定默认值或者mysql表允许这些字段为空。--input-null-string   或者 --input-null-non-string 
+#若采用update模式，需要指定主键。
+
+
+HiveSQL  
+---------DML
+1 Windows 开窗函数
+一般格式：
+SELECT a, SUM(b) OVER (PARTITION BY c ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+FROM T;
+或者指定前后选取的行数：
+UNBOUNDED PRECEDING指首行
+UNBOUNDED FOLLOWING指尾行
+CURRENT ROW当前行
+3 PRECEDING 前3行 （不存在时将跳过）
+3 FOLLOWING 后3行
+
+2 与Windows 配合使用的分析函数：
+RANK
+ROW_NUMBER
+DENSE_RANK
+CUME_DIST
+PERCENT_RANK
+NTILE
+
+3  取topN
+lead(N) topN
+lag(N)  tail N
+
+
+ 
+ 
+
+
+
+
+
+
+
+
