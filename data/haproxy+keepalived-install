@@ -1,0 +1,78 @@
+----------------------install haproxy-------------------------
+#first  install  haproxy
+#HAProxy installation:
+$yum –y inatall haproxy
+
+#start haproxy  commend
+#Start and stop HAProxy, than add it to service start list.
+$service haproxy start
+$service haproxy stop
+$chkconfig haproxy on
+
+#set configuration
+/etc/haproxy/haproxy.cfg 
+
+#set port for hiveserver2,impala-shell,impalajdbc  
+
+
+#restart
+$service haproxy restart
+
+
+#重复安装在另一个备用节点上
+
+-----------------------安装keepalived------------------------------
+#在安装了haproxy的节点上都安装keepalived
+#install keepalived in same servers with haproxy
+$yum install keepalived
+
+#编辑配置文件
+/etc/keepalived/keepalived.conf
+
+#需要设置的地方：
+#设置邮件列表
+global_defs {
+   notification_email {
+     root@localhost
+     
+   }
+   notification_email_from Alexandre.Cassen@firewall.loc
+   smtp_server 127.0.0.1
+   smtp_connect_timeout 30
+   router_id LVS_DEVEL
+} 
+#设置监控循环执行脚本
+vrrp_script chk_haproxy {                        
+    script "/etc/keepalived/chk_haproxy.sh"
+    interval 4
+    weight 200
+}
+
+#设置虚拟ip，将state分别设置为MASTER和BACKUP
+#两个节点的virtual_router_id都为51
+vrrp_instance VI_1 {
+    state MASTER
+    interface enp2s0f0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass 1111
+    }
+    track_script {
+      chk_haproxy
+    }
+    virtual_ipaddress { 
+    172.17.17.254  
+	}
+}
+
+#重启keepalived
+
+
+
+-------------------------------CDH启用haproxy---------------------------------------------
+#通过虚拟IP访问
+#在hue中设置Impala的访问路径到虚拟节点
+#impala和hive连接时连接虚拟IP即可。
