@@ -1,0 +1,8 @@
+1 Impala 消耗的总内存
+SELECT mem_rss_across_impalads WHERE entityName = "impala" AND category = SERVICE
+2 Impala查询数 
+select  queries_ingested_rate WHERE entityName = "impala"
+3 Impala的Hiveserver2 session连接数
+SELECT num_open_hiveserver2_sessions_across_impalads WHERE entityName = "impala" AND category = SERVICE
+4 CPU 使用比
+5 不同资源池内存的消耗
