@@ -1,0 +1,272 @@
+
+1	Sqoop  
+1 Sqoop 是一组工具集，包含了RDBS 与Hadoop 数据交互的多种工具。这些工具 主要包括等Import，Export
+2 基本设置
+$SQOOP_HOME
+$HADOOP_HOME
+3 Import  工具介绍 
+#选择Sqoop Import工具
+$ sqoop  import  -help 
+#import 工具用于将数据导入到Hadoop平台中
+#数据源一般选择JDBC连接
+#Mysql：jdbc:mysql://localhost:3306/student
+#Oracle：jdbc:oracle:thin:@//<host>:<port>/ServiceName或jdbc:oracle:thin:@<host>:<port>:<SID>
+#其他需要账户名、密码
+#设置数据连接信息
+#可以选择多种密码安全措施
+#数据源设置内容包括连接信息、账户名与密码、指定数据字段范围
+#1数据源url
+--connect jdbc:mysql://database.example.com/employees \
+--username dbuser  \
+--password-file ${user.home}/.password-alias  \
+#2选择数据源有两种选择方式
+#--------------------方法一--------------------------------
+#通过制定多个参数
+--table  ${tablename}  \
+--columns "name,employee_id,jobtitle"  \
+--where "id > 400"
+#------------------方法二-----------------------------------  
+#或者通过query的方式选择数据
+--query 'SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE $CONDITIONS' 
+--split-by a.id --target-dir /user/foo/joinresults
+#或者
+--query “SELECT a.*, b.* FROM a JOIN b on (a.id == b.id) WHERE \$CONDITIONS”\
+-m 1 --target-dir /user/foo/joinresults
+#3指定其他参数
+-m 1  或者  --split-by a.id 
+--as-textfile 
+#以上两种方式指定了平行执行的模式，-m  选择单个map执行，--split-by 执行了并行执行的split字段，当没有分割字段时，默认选择单个key作为分割字段。
+#4指定target信息
+#直接输出到目录
+--target-dir /user/foo/joinresults
+--input-fields-terminated-by  '|'
+#指定hive 参数
+--hive-import   --hive-table   test.demo
+
+4 export 工具介绍
+$ Sqoop export  -help
+sqoop  export   --connect  jdbc:mysql://172.17.17.90:3306/test   \
+--username root  --password  huawei  \
+--export-dir  hdfs://cscloud-citus-mppdb-14.huawei.com:8020/user/hive/warehouse/test.db/demo     \
+--table demo  \
+--fields-terminated-by  "\001"
+-m=1
+#export 默认导入的是HDFS文件，模式是insert 。
+#文件需要指定分隔符。
+#若通过—cloumns  指定特定列，没有指定的列必须指定默认值或者mysql表允许这些字段为空。--input-null-string   或者 --input-null-non-string 
+#若采用update模式，需要指定主键。
+
+
+2	HiveSQL  
+#DDL 数据定义语言
+1 hive建表
+创建内部表
+#create  table  demo2(
+id int,
+name  String
+)
+partitioned by (age int)
+clustered by(id) into 3 buckets 
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+STORED AS PARQUET
+创建外部表或临时表：
+create [TEMPORARY] [EXTERNAL] table  demo4(
+id int,
+name  String,
+age  int) 
+ROW FORMAT DELIMITED
+    FIELDS TERMINATED BY ','
+LOCATION  'hdfs://cscloud-citus-mppdb-14.huawei.com:8020/user/hive/warehouse/test.db/demo4'
+2 Hive 创建View视图
+
+
+
+3	Hive分区
+1 创建分区
+默认为静态分区模式，静态分区模式下必须显式的指定分区字段值，动态分区模式下，可以动态指定分区指。
+开启动态分区：
+set hive.exec.dynamic.partition=true;(可通过这个语句查看：set hive.exec.dynamic.partition;) 
+set hive.exec.dynamic.partition.mode=nonstrict; 
+#设置其他参数（可选）
+SET hive.exec.max.dynamic.partitions=100000;(如果自动分区数大于这个参数，将会报错)
+SET hive.exec.max.dynamic.partitions.pernode=100000;
+set hive.enforce.bucketing = true;强制分桶。
+2 数据插入Hive分区表
+insert overwrite  table  demo2  partition (age)   select * from  demo where age is not null ;
+
+3 数据库
+1 删除数据库
+drop  database   dbname   cascade；
+cascade  是级联删除的意思。
+
+
+
+
+---------DML
+1 Windows 开窗函数
+一般格式：
+SELECT a, SUM(b) OVER (PARTITION BY c ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+FROM T;
+或者指定前后选取的行数：
+UNBOUNDED PRECEDING指首行
+UNBOUNDED FOLLOWING指尾行
+CURRENT ROW当前行
+3 PRECEDING 前3行 （不存在时将跳过）
+3 FOLLOWING 后3行
+
+2 与Windows 配合使用的分析函数：
+RANK
+ROW_NUMBER
+DENSE_RANK
+CUME_DIST
+PERCENT_RANK
+
+NTILE
+
+3  取topN
+lead(N) topN
+lag(N)  tail N   
+
+
+
+
+
+
+
+
+
+Hive  DML语言
+1 Hive内置函数Built-in Functions
+hive内置函数包括了对多种数据的处理支持，如Double类型，String，以及日期格式Date等，也包括了集合（collection）操作。
+日期转换如：
+unix_timestamp()  获取时间戳；
+unix_timestamp(string date, string pattern) 如unix_timestamp('2009-03-20', 'yyyy-MM-dd') = 1237532400. 
+from_unixtime(bigint unixtime[, string format]) 时间戳转换为date类型，pattern如yyyy-MM-dd HH:mm:ss 
+时间操作也包括了其他的日期计算函数。
+
+2 Hive内置操作Built-in Operators
+内置操作指内置的各种计算操作支持，特别的如Map，Array，Struct。
+
+3 Hive内置Table-Generating Functions
+用于行操作，将单行中的元素如Array、Json、Struct等拆分为多行数据：
+基本的用法如Hive的行转列的lateral view explode语句。
+
+
+Hive的文件格式
+
+Parquet 格式与Avro以及Sequence的不同用法：
+数据的写入与读出性能是不同的，
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+问题集
+1 mysql 数据库整库导入Hive；
+2 Hive数据表导出到Sqoop；
+3 Hive 建表（外部表与内部表），指定分隔符以及存储格式，分区分桶等
+4 hive View 使用；
+5 Alter 修改schema，包括表名、字段名、分区信息。
+6 日期格式提取，时间戳与日期转换；
+7 字符串合并、过滤、切割；
+8 正则切分字符串；
+9 行专列与列转行；
+
+
+
+
+应用实例：
+
+
+
+
+
+4 
+5 Alter 操作
+alter column 
+// First change column a's name to a1.
+ALTER TABLE test_change CHANGE a a1 INT;
+Alter partition 
+ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
+                          PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
+
+
+
+1 Hive实现列转行操作：
+创建表studnet：
+create table student(
+    name string,
+	subject string,
+	score decimal(4,1))
+row format delimited
+fields terminated by '|';
+
+数据文件及内容： student.txt
+xiaoming|english|92.0
+xiaoming|chinese|98.0
+xiaoming|math|89.5
+huahua|chinese|80.0
+huahua|math|89.5
+
+执行转换：
+> select name,concat_ws(',',collect_set(subject)) from student group by name;
+huahua    chinese,math
+xiaoming  english,chinese,math
+
+> select name,concat_ws(',',collect_set(concat(subject,'=',score))) from student group by name;
+huahua   chinese=80,math=89.5
+xiaoming english=92,chinese=98,math=89.5
+
+2 Hive实现行转列操作
+数据文件及内容：student2.txt
+huahua|chinese=80,math=89.5
+xiaoming|english=92,chinese=98,math=89.5
+
+创建表：
+create table student2(name string,subject_score_list string)
+row format delimited
+fields terminated by '|';
+
+> select name, subject_list from student2 stu2 lateral view explode(split(stu2.subject_score_list,','))stu_subj as subject_list; ----别名一定不要忘记
+huahua    chinese=80
+huahua    math=89.5
+xiaoming  english=92
+xiaoming  chinese=98
+xiaoming  math=89.5
