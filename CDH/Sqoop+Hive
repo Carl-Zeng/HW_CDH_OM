@@ -294,6 +294,7 @@ create table like 与 as；
 
 
 数据分析部分：
+这些函数中hive与Impala的区别。
 常见的聚合函数，最大，最小，求和，平均，方差，标准差。
 开窗函数topN，统计实例；
 多种关联，leftjoin，join，inner join。
