@@ -1,5 +1,5 @@
 
-1	Sqoop  
+1Sqoop数据导入与导出  
 1 Sqoop 是一组工具集，包含了RDBS 与Hadoop 数据交互的多种工具。这些工具 主要包括等Import，Export
 2 基本设置
 $SQOOP_HOME
@@ -56,6 +56,44 @@ sqoop  export   --connect  jdbc:mysql://172.17.17.90:3306/test   \
 #若通过—cloumns  指定特定列，没有指定的列必须指定默认值或者mysql表允许这些字段为空。--input-null-string   或者 --input-null-non-string 
 #若采用update模式，需要指定主键。
 
+例子：
+Oracle jdbc URL：jdbc:oracle:thin:@10.138.46.11:1521:testdb  （SID=testdb）
+Mysql jdbc URL：jdbc:mysql://localhost:3306/easonjim
+
+Sqoop Oracle 到HDFS 
+$sqoop  import --connect jdbc:oracle:thin:@10.138.46.11:1521:testdb  \
+ --username  tohdfs --password zR8nBJfeSOIYa0yu \
+--table WO_WORKOREDR_SOURCE_INDEX \ 
+--m 1   \
+--target-dir  /tmp/oracle/date21  \
+--as-textfile  \
+--fields-terminated-by '\t'
+Sqoop mysql 到HDFS 
+ sqoop  import --connect   jdbc:mysql://aas01:3306/test1  \
+--username  root  --password  123456  \
+--table  test_to_hive  \
+--target-dir  /tmp/acl/test_to_hive  
+--m 1 
+--as-textfile
+--fields-terminated-by '\t'
+Sqoop mysql 到Hive 
+sqoop  import --connect   jdbc:mysql://aas01:3306/test1 \
+--username  root  --password  123456  \
+--table  test_to_hive   --m 1 --as-textfile  \
+--hive-import   --create-hive-table \
+--hive-table test_to_hive  --hive-database  test          
+Sqoop hive 到Mysql 
+sqoop  export --connect   jdbc:mysql://aas01:3306/test1  \
+--username  root  --password  123456  \
+--table  test_to_hive   \
+--export-dir    /user/hive/warehouse/test.db/test_to_hive    --fields-terminated-by   '\001'
+hive导出到mysql，实际上是将hdfs文件导出到mysql，所以需要指定文件的路径以及列分隔符；
+
+
+
+
+
+
 
 2	HiveSQL  
 #DDL 数据定义语言
@@ -104,91 +142,24 @@ cascade  是级联删除的意思。
 
 
 ---------DML
-1 Windows 开窗函数
-一般格式：
-SELECT a, SUM(b) OVER (PARTITION BY c ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-FROM T;
-或者指定前后选取的行数：
-UNBOUNDED PRECEDING指首行
-UNBOUNDED FOLLOWING指尾行
-CURRENT ROW当前行
-3 PRECEDING 前3行 （不存在时将跳过）
-3 FOLLOWING 后3行
-
-2 与Windows 配合使用的分析函数：
-RANK
-ROW_NUMBER
-DENSE_RANK
-CUME_DIST
-PERCENT_RANK
-
-NTILE
-
-3  取topN
-lead(N) topN
-lag(N)  tail N   
+  
 
 
 
+4 
+5 Alter 操作
+alter column 
+// First change column a's name to a1.
+ALTER TABLE test_change CHANGE a a1 INT;
+Alter partition 
+ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
+                          PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
 
-
-
-
-
-
-Hive  DML语言
-1 Hive内置函数Built-in Functions
-hive内置函数包括了对多种数据的处理支持，如Double类型，String，以及日期格式Date等，也包括了集合（collection）操作。
-日期转换如：
-unix_timestamp()  获取时间戳；
-unix_timestamp(string date, string pattern) 如unix_timestamp('2009-03-20', 'yyyy-MM-dd') = 1237532400. 
-from_unixtime(bigint unixtime[, string format]) 时间戳转换为date类型，pattern如yyyy-MM-dd HH:mm:ss 
-时间操作也包括了其他的日期计算函数。
-
-2 Hive内置操作Built-in Operators
-内置操作指内置的各种计算操作支持，特别的如Map，Array，Struct。
-
-3 Hive内置Table-Generating Functions
-用于行操作，将单行中的元素如Array、Json、Struct等拆分为多行数据：
-基本的用法如Hive的行转列的lateral view explode语句。
-
-
-Hive的文件格式
-
-Parquet 格式与Avro以及Sequence的不同用法：
-数据的写入与读出性能是不同的，
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+DDL
+alter 修改 表明，字段名，添加字段，修改字段类型；
+创建分区表：包括数据插入静态分区与动态分区；
+分桶；
+create table like 与 as；
 
 
 
@@ -204,31 +175,11 @@ Parquet 格式与Avro以及Sequence的不同用法：
 3 Hive 建表（外部表与内部表），指定分隔符以及存储格式，分区分桶等
 4 hive View 使用；
 5 Alter 修改schema，包括表名、字段名、分区信息。
-6 日期格式提取，时间戳与日期转换；
-7 字符串合并、过滤、切割；
 8 正则切分字符串；
 9 行专列与列转行；
 
 
-
-
-应用实例：
-
-
-
-
-
-4 
-5 Alter 操作
-alter column 
-// First change column a's name to a1.
-ALTER TABLE test_change CHANGE a a1 INT;
-Alter partition 
-ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
-                          PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
-
-
-
+数据处理与操作
 1 Hive实现列转行操作：
 创建表studnet：
 create table student(
@@ -271,10 +222,7 @@ xiaoming  english=92
 xiaoming  chinese=98
 xiaoming  math=89.5
 
-
-需要补充细化的地方：
-ETL部分：
-1 case then 语句实例；
+3 case then 语句实例；
 --简单case函数
 case sex
   when '1' then '男'
@@ -284,8 +232,8 @@ case sex
 case when sex = '1' then '男'
      when sex = '2' then '女'
      else '其他' end  
-字符串截取，切分，替换；
-2 字符串操作方法
+
+4 字符串操作方法
 --字符串拼接
 concat('foo', 'bar')  => 'foobar'
 concat_ws(',','foo', 'bar') => 'foo,bar'
@@ -298,15 +246,18 @@ instr(string str, string substr)
 大小写：upper(string A)，lower(string A) 
 正则切分：
 
-3 时间提取，年、月、日，系统时间戳获取，时间戳与日期格式转换；
+5 时间提取，年、月、日，系统时间戳获取，时间戳与日期格式转换；
 获取日期：current_date
 获取时间：current_timestamp
 获取当前系统时间戳：unix_timestamp()
+unix_timestamp()  获取时间戳；
+unix_timestamp(string date, string pattern) 如unix_timestamp('2009-03-20', 'yyyy-MM-dd') = 1237532400. 
+from_unixtime(bigint unixtime[, string format]) 时间戳转换为date类型，pattern如yyyy-MM-dd HH:mm:ss 
 
-4 数据类型转换
+6 数据类型转换
 cast(cast(a as string) as double)；
 
-5 
+
 
 插入数据
 
@@ -316,24 +267,36 @@ insert  into /override
 Sqoop 导入与导出
 
 
-DDL
-alter 修改 表明，字段名，添加字段，修改字段类型；
-创建分区表：包括数据插入静态分区与动态分区；
-分桶；
-create table like 与 as；
 
-
-
-
-
-
-数据分析部分：
+数据聚合分析部分：
 这些函数中hive与Impala的区别。
 常见的聚合函数，最大，最小，求和，平均，方差，标准差。
 开窗函数topN，统计实例；
 多种关联，leftjoin，join，inner join。
 union 实例：union  与union all 
+1 Windows 开窗函数
+一般格式：
+SELECT a, SUM(b) OVER (PARTITION BY c ORDER BY d ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+FROM T;
+或者指定前后选取的行数：
+UNBOUNDED PRECEDING指首行
+UNBOUNDED FOLLOWING指尾行
+CURRENT ROW当前行
+3 PRECEDING 前3行 （不存在时将跳过）
+3 FOLLOWING 后3行
 
+2 与Windows 配合使用的分析函数：
+RANK
+ROW_NUMBER
+DENSE_RANK
+CUME_DIST
+PERCENT_RANK
+
+NTILE
+
+3  取topN
+lead(N) topN
+lag(N)  tail N 
 
 
 
