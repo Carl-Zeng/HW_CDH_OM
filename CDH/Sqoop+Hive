@@ -274,10 +274,44 @@ xiaoming  math=89.5
 
 需要补充细化的地方：
 ETL部分：
-增加case then 语句实例；
+1 case then 语句实例；
+--简单case函数
+case sex
+  when '1' then '男'
+  when '2' then '女’
+  else '其他' end
+--case搜索函数
+case when sex = '1' then '男'
+     when sex = '2' then '女'
+     else '其他' end  
 字符串截取，切分，替换；
-时间提取，年、月、日，系统时间戳获取，时间戳与日期格式转换；
+2 字符串操作方法
+--字符串拼接
+concat('foo', 'bar')  => 'foobar'
+concat_ws(',','foo', 'bar') => 'foo,bar'
+--返回index
+instr(string str, string substr) 
+0表示不包含，位置从1开始。
+替换：replace（strA,strB） 
+子串：substr(string|binary A, int start, int len) 
+切分：split(string str, string pat)
+大小写：upper(string A)，lower(string A) 
+正则切分：
+
+3 时间提取，年、月、日，系统时间戳获取，时间戳与日期格式转换；
+获取日期：current_date
+获取时间：current_timestamp
+获取当前系统时间戳：unix_timestamp()
+
+4 数据类型转换
+cast(cast(a as string) as double)；
+
+5 
+
 插入数据
+
+其他函数：
+
 insert  into /override
 Sqoop 导入与导出
 
