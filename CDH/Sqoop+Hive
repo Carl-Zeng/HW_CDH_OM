@@ -91,11 +91,7 @@ hive导出到mysql，实际上是将hdfs文件导出到mysql，所以需要指�
 
 
 
-
-
-
-
-2	HiveSQL  
+HiveSQL  
 #DDL 数据定义语言
 1 hive建表
 创建内部表
@@ -116,56 +112,43 @@ age  int)
 ROW FORMAT DELIMITED
     FIELDS TERMINATED BY ','
 LOCATION  'hdfs://cscloud-citus-mppdb-14.huawei.com:8020/user/hive/warehouse/test.db/demo4'
+
 2 Hive 创建View视图
+create  view  view_demo  as  select * from demo;
 
-
-
-3	Hive分区
-1 创建分区
-默认为静态分区模式，静态分区模式下必须显式的指定分区字段值，动态分区模式下，可以动态指定分区指。
-开启动态分区：
-set hive.exec.dynamic.partition=true;(可通过这个语句查看：set hive.exec.dynamic.partition;) 
+3 Hive分区
+#创建分区
+#开启动态分区：
+set hive.exec.dynamic.partition=true; 
 set hive.exec.dynamic.partition.mode=nonstrict; 
 #设置其他参数（可选）
-SET hive.exec.max.dynamic.partitions=100000;(如果自动分区数大于这个参数，将会报错)
+SET hive.exec.max.dynamic.partitions=100000;
 SET hive.exec.max.dynamic.partitions.pernode=100000;
-set hive.enforce.bucketing = true;强制分桶。
-2 数据插入Hive分区表
+set hive.enforce.bucketing = true;
+4 数据插入Hive分区表
 insert overwrite  table  demo2  partition (age)   select * from  demo where age is not null ;
-
-3 数据库
-1 删除数据库
+inset into table demo_partition  partition(age=12) select *  from demo  where age=12;
+5 数据库
+# 删除数据库
 drop  database   dbname   cascade；
 cascade  是级联删除的意思。
 
-
-
-
 ---------DML
-  
-
-
-
-4 
+   
 5 Alter 操作
+#修改表名
+alter  table demo rename  to demo2;
+#修改字段类型
+#修改字段名称
+#添加新字段
 alter column 
 // First change column a's name to a1.
 ALTER TABLE test_change CHANGE a a1 INT;
+修改分区
 Alter partition 
+#插入分区
 ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
                           PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
-
-DDL
-alter 修改 表明，字段名，添加字段，修改字段类型；
-创建分区表：包括数据插入静态分区与动态分区；
-分桶；
-create table like 与 as；
-
-
-
-
-
-
 
 
 
@@ -286,18 +269,58 @@ CURRENT ROW当前行
 3 FOLLOWING 后3行
 
 2 与Windows 配合使用的分析函数：
-RANK
-ROW_NUMBER
-DENSE_RANK
+#排序RANK（）
+#行号ROW_NUMBER（）
+#DENSE_RANK（）
 CUME_DIST
 PERCENT_RANK
+#NTILE（）
 
-NTILE
+参考链接；
+https://www.cnblogs.com/52XF/p/4209211.html
+#排序后按序号取数
+#可产生序号，每行序号在分组内唯一；
+#row_number（）按需排，相同的值也有不同的序号。
+with orderSection as
+(
+    select ROW_NUMBER() OVER(order by [SubTime] desc) rownum,* from [Order]
+)
+select * from [orderSection] where rownum between 3 and 5 order by [SubTime] desc
+#如小组内有三条记录（1,1,2），则rank（）得到的序号是：
+（1,1）
+（2,1）
+（3,2）
+
+#rank（）
+#指排名，与row_number不同的是，它的相同值有相同的值。
+#可用来生成排名
+#如小组内有三条记录（1,1,2，3），则rank（）得到的序号是：
+（1,1）
+（1,1）
+（3,2）
+（4,3）
+#dense_rank（）
+#与rank类似，但是会产生连续的排名：
+#如小组内有三条记录（1,1,2，3），则rank（）得到的序号是：
+（1,1）
+（1,1）
+（2,2）
+（3,3）
+#NTILE(4)用于将查询的结果分桶，并显示桶的编号，从1开始；
+select NTILE(4) OVER(order by [SubTime] desc) as ntile,* from [Order]
+
+
+
+
+
 
 3  取topN
-lead(N) topN
-lag(N)  tail N 
-
+#lead(N) topN
+SELECT a, LEAD(a) OVER (PARTITION BY b ORDER BY C)
+FROM T;
+#lag(N)  tail N 
+SELECT a, LAG(a, 3, 0) OVER (PARTITION BY b ORDER BY C)
+FROM T;
 
 
 
