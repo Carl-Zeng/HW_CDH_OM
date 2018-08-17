@@ -128,6 +128,9 @@ set hive.enforce.bucketing = true;
 4 数据插入Hive分区表
 insert overwrite  table  demo2  partition (age)   select * from  demo where age is not null ;
 inset into table demo_partition  partition(age=12) select *  from demo  where age=12;
+#分区设置
+SET hive.exec.max.dynamic.partitions=100000;
+SET hive.exec.max.dynamic.partitions.pernode=100000;
 5 数据库
 # 删除数据库
 drop  database   dbname   cascade；
