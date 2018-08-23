@@ -81,7 +81,8 @@ sqoop  import --connect   jdbc:mysql://aas01:3306/test1 \
 --username  root  --password  123456  \
 --table  test_to_hive   --m 1 --as-textfile  \
 --hive-import   --create-hive-table \
---hive-table test_to_hive  --hive-database  test          
+--hive-table test_to_hive  --hive-database  test       
+
 Sqoop hive 到Mysql 
 sqoop  export --connect   jdbc:mysql://aas01:3306/test1  \
 --username  root  --password  123456  \
@@ -126,8 +127,20 @@ SET hive.exec.max.dynamic.partitions=100000;
 SET hive.exec.max.dynamic.partitions.pernode=100000;
 set hive.enforce.bucketing = true;
 4 数据插入Hive分区表
+#动态插入
 insert overwrite  table  demo2  partition (age)   select * from  demo where age is not null ;
-inset into table demo_partition  partition(age=12) select *  from demo  where age=12;
+#静态插入
+insert into table demo_partition  partition(age=12) select *  from demo  where age=12;
+#导入文件到目录后手动添加分区
+直接put数据到分区目录，之后手动插入分区
+#插入分区
+ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us')
+                          PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
+
+#load data 到分区分区
+load  data  local inpath '/root/carl/sex=4' into table partition_demo partition(sex=5);
+结果分区为sex=5;
+
 #分区设置
 SET hive.exec.max.dynamic.partitions=100000;
 SET hive.exec.max.dynamic.partitions.pernode=100000;
@@ -143,15 +156,16 @@ cascade  是级联删除的意思。
 alter  table demo rename  to demo2;
 #修改字段类型
 #修改字段名称
-#添加新字段
 alter column 
 // First change column a's name to a1.
-ALTER TABLE test_change CHANGE a a1 INT;
-修改分区
-Alter partition 
-#插入分区
-ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
-                          PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
+ALTER TABLE test_change CHANGE a a1 INT;desc  
+#添加新字段
+alter  table demo add  columns  (id   string);
+
+
+
+
+
 
 
 
@@ -159,8 +173,7 @@ ALTER TABLE page_view ADD PARTITION (dt='2008-08-08', country='us') location '/p
 1 mysql 数据库整库导入Hive；
 2 Hive数据表导出到Sqoop；
 3 Hive 建表（外部表与内部表），指定分隔符以及存储格式，分区分桶等
-4 hive View 使用；
-5 Alter 修改schema，包括表名、字段名、分区信息。
+4 
 8 正则切分字符串；
 9 行专列与列转行；
 
