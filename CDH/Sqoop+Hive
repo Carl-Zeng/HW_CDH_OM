@@ -248,10 +248,12 @@ instr(string str, string substr)
 5 时间提取，年、月、日，系统时间戳获取，时间戳与日期格式转换；
 获取日期：current_date
 获取时间：current_timestamp
-获取当前系统时间戳：unix_timestamp()
-unix_timestamp()  获取时间戳；
+current_timestamp（）获取Unix时间戳，是指query开始执行时的时间戳，每行都相同。
 unix_timestamp(string date, string pattern) 如unix_timestamp('2009-03-20', 'yyyy-MM-dd') = 1237532400. 
-from_unixtime(bigint unixtime[, string format]) 时间戳转换为date类型，pattern如yyyy-MM-dd HH:mm:ss 
+from_unixtime(bigint unixtime[, string format]) 将unix时间戳转换java时间戳，
+pattern如yyyy-MM-dd HH:mm:ss，带时区格式： "dd-MM-yy:HH:mm:SS Z"；
+将java时间戳转换为日期格式：
+to_date(string timestamp);
 
 6 数据类型转换
 cast(cast(a as string) as double)；
