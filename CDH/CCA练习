@@ -1,0 +1,73 @@
+统计变量
+variance  方差
+variance_sample
+variance_entire
+hive中对应的统计方法为
+var_pop（col） = variance（col）
+var_samp(col)
+standard_deviation  标准差
+stddev_pop(col)
+stddev_samp(col)
+
+1 mysql 整库迁移到HDFS
+sqoop  import-all-tables    --connect   jdbc:mysql://cscloud-rs-hadoop125:3306/oozie   --username root --password huawei  --as-textfile  --warehouse-dir   /tmp/oozie_car  -m 1
+
+2 struct 结构建表与统计
+#行内创建结构化数据表；
+array(val1, val2, ...) Creates an array with the given elements.
+create_union(tag, val1, val2, ...) Creates a union type with the value that is being pointed to by the tag parameter.
+map(key1, value1, key2, value2, ...) Creates a map with the given key/value pairs.
+named_struct(name1, val1, name2, val2, ...) Creates a struct with the given field names and values. (As of Hive 0.8.0.)
+struct(val1, val2, val3, ...) Creates a struct with the given field values. Struct field names will be col1, col2, ....
+#建表
+create table  region (
+r_regionkey string,
+r_name string ,
+r_comment string ,
+r_nations   array<struct<n_nationkey:smallint,n_name:string,n_comment:string>> 
+ )
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '|'                       
+COLLECTION ITEMS TERMINATED BY ','
+stored as  parquet;
+
+原始数据
+r_regionkey|r_name|r_comment|r_nations &amp;lt;n_nationkey,n_name,n_comment>
+1|AFRICA|Good Business Region for HadoopExam.com|0,Cameroon,Reference site http://www.QuickTechie.com
+1|AFRICA|Good Business Region for Training4Exam.com|5,Egypt,Reference site http://www.HadoopExam.com
+数据导入临时表;
+hive -e "load data local inpath  '/root/carl/tmp_region' into table partition_carl.tmp_region;" 
+数据切割，并插入到数据表
+insert  overwrite table region
+select
+split(str,'\\|')[0] as r_regionkey,
+split(str,'\\|')[1] as r_name,
+split(str,'\\|')[2] as r_comment,
+array(named_struct(
+"n_nationkey",cast( split(split(str,'\\|')[3],',')[0] as  smallint),
+"n_name",split(split(str,'\\|')[3],',')[1],
+"n_comment",split(split(str,'\\|')[3],',')[2]
+))
+from tmp_region  limit 10;  
+
+统计数据
+hive sql：
+select
+r_name,
+count(r_nations.n_nationkey[0]) as count_key,
+avg(r_nations.n_nationkey[0]) as avg_key,
+min(r_nations.n_nationkey[0]) as min_key,
+max(r_nations.n_nationkey[0]) as max_key,
+count(distinct r_nations.n_nationkey[0]) as dist_count_key
+from region
+group by  r_name;
+
+3 列转行聚合
+4 开窗求和
+5 开窗求差
+#获取排序后前一条记录
+5 求方差
+6 日期格式转换
+7 存储格式：
+parquet
+textfile
+SEQUENCEFILE；
