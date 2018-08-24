@@ -325,18 +325,15 @@ select * from [orderSection] where rownum between 3 and 5 order by [SubTime] des
 #NTILE(4)用于将查询的结果分桶，并显示桶的编号，从1开始；
 select NTILE(4) OVER(order by [SubTime] desc) as ntile,* from [Order]
 
-
-
-
-
-
 3  取topN
-#lead(N) topN
+#lead(N) 取后N条记录
 SELECT a, LEAD(a) OVER (PARTITION BY b ORDER BY C)
 FROM T;
-#lag(N)  tail N 
+#lag(N)  取前N条记录 
 SELECT a, LAG(a, 3, 0) OVER (PARTITION BY b ORDER BY C)
 FROM T;
+FIRST_VALUE（a）
+LAST_VALUE（a）；
 
 
 
