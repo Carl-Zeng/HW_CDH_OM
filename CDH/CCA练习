@@ -61,6 +61,34 @@ count(distinct r_nations.n_nationkey[0]) as dist_count_key
 from region
 group by  r_name;
 
+3 导入外部的AVRO格式数据
+schema :demo_avro.avsc
+{
+  "namespace": "com.linkedin.haivvreo",
+  "name": "demo_avro",
+  "type": "record",
+  "fields": [
+    { "name":"id", "type":"int" },
+    { "name":"name", "type":"string" }
+  ] }
+schema path:file:////root/carl/demo_avro.avsc 
+建立外部表:
+CREATE  external  TABLE  demo_avro_2
+   ROW FORMAT SERDE
+  'org.apache.hadoop.hive.serde2.avro.AvroSerDe'
+  STORED as INPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat'
+  OUTPUTFORMAT
+  'org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat'
+  location '/tmo/demo_avro_2'
+  TBLPROPERTIES (
+    'avro.schema.url'='file:////root/carl/demo_avro.avsc');
+  直接导入avro数据到指定目录下；
+  查看数据：
+  hive> select *  from demo_avro_2； 显示正常结果数据。
+  官网有完整例子。
+
+
 3 列转行聚合
 4 开窗求和
 5 开窗求差
