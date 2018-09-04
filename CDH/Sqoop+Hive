@@ -258,6 +258,22 @@ to_date(string timestamp);
 6 数据类型转换
 cast(cast(a as string) as double)；
 
+7 正则过滤
+hive中提供了正则过滤函数：
+正则提取数据：
+regexp_extract(string subject, string pattern, int index)
+regexp_extract('foothebar', 'foo(.*?)(bar)', 2) -> 'bar' 
+正则替换：
+regexp_replace(string INITIAL_STRING, string PATTERN, string REPLACEMENT)
+regexp_replace("foobar", "oo|ar", "") -> 'fb' 
+其他要点;
+'()' 表示提取数据；
+'^' 表示行首；
+'$' 表示行末；
+'[0-9]','\d'表示数字；
+'[a-zA-Z]',表示字母；
+'[^a-z]' 表示不包含小写字母；
+
 
 
 插入数据
