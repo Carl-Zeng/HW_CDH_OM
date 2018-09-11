@@ -1,0 +1,147 @@
+优化分析
+对于sql存在的问题，需要通过执行几乎分析，是什么环节发生的瓶颈,常见的问题如下：
+1）数据量过大，处理速度慢。
+这类场景下，SQL过程本身并不复杂，但是却需要处理庞大的数据。
+问题细化后会发现可能的瓶颈点在于
+A：输入文件过多，常见的可能有上万个。及时采用的parqet格式，但是任然需要消耗大量的scaner线程资源扫描这些文件，此时瓶颈在于scaner端；
+B：单个节点需要处理过多的数据，处理卡在中间的处理环节；
+C：文件写入过慢，大量的时间消耗在encode过程。
+应对策略：
+A：通过hive合并小文件，设置分区，同时设置合理的parquet_file_size;
+B: 可以适当的增加batch_size的大小，同时增加Impala io的缓存大小，可选参数如data_stream_sender_buffer_size，默认值为16384；exchg_node_buffer_size_bytes ，默认值为10485760；
+C：设置合理的parquet_file_size，推荐值为1G，同时可以适时的选择分区设置，是的每个节点并行输出。
+D：输入表有分区时计算computer status，优化执行计划。
+
+2）sql语句复杂，导致执行过慢
+过于复杂的逻辑，虽然看起来没有内存瓶颈，但是会明显的拖慢执行进度。有事多个子查询同时运行，也会造成执行卡顿。
+应对策略：
+分步骤执行，在重要环节选择数据落地。
+
+3）重复的查询过程
+常见的语句如with as 语句，它包含了大量的子查询，但是不会为子查询创建临时表，会生成重复执行的复杂执行计划。
+应对策略：
+A：使用view在表示子查询，简化SQL的语法；
+B：将重复调用的核心子查询转换为中间临时表落地。
+
+4）特殊操作，需要在单节点执行
+如全局的排序，sort，大量的数据会集中在单个节点进行排序，需占用大量资源的同时执行缓慢；
+应对策略：
+A：在允许的范围内增加内存；
+B：可以选择distribute by的环节，减少参与排序的数据量。
+
+5）使用的不合理的语法
+如group_concat集合函数，可能会获得一个巨大的值，造成卡顿；
+应对策略：
+集合操作慎用，如果可以，添加入distinct操作，减少集合元素的size。
+
+
+Impala
+1 Hash  Join 执行慢
+现状：对一个很大的表（几十亿行）做Join时，发现执行慢的环节主要在核心的梳理环节，如Exchange（partition） 或者前一步的Hash环节。
+明显的，这两个环节需要CPU时间支撑。
+分析：Impala采用了多进程的并行方式计算，所以在单个节点上只有一个线程处理数据，是典型的多进程+多线程处理模式；
+这种场景下，Queries的效率显然跟平均每个节点数据的数据有关，在一个大集群（节点>100）中，由于并行度增加，平均处理数据量下降，所以处理速度会比较快；但是在一个小集群
+中，并行度有限，所以速度会相对慢很多。
+优化措施：
+A:提高set BATCH_SIZE 更大的值，默认为1024，增加单次处理的数据量大小，提高处理速度；
+B:增加sender发送数据的batch_size：data_stream_sender_buffer_size，默认值为16384；
+C:增加接受端的缓存大小：exchg_node_buffer_size_bytes ，默认值为10485760；
+上述三种措施只是增加了数据的流量。但是效果不是很明显。
+对于这类操作，计算简单（join），数据量大（几亿）的场景。增加处理任务的并行度会明显的加快处理速度。
+对于这类场景，Hive速度会比Impala快很多。
+
+2 window Sort 
+对于开窗排序，分配足够的内存，才能准确运行；
+当排序的目的是获取TopN类似的操作是，可以直接指定相关的函数。
+这类操作可以在Hive中更好的执行。
+
+3 with as 语句
+A:Impala和Hive没有对WithAs语句进行优化，子表没出现一次都会重新执行。对于复杂的子查询，可以通过view的方式代替。多次出现的子表需要通过中间临时表的方式落地。
+B:Impala中并行运行的子查询出现资源抢占冲突时，需要分开执行，如将union all 语句拆分，或者直接使用临时表等；
+
+4 HDFS Sink 瓶颈
+现状：数据写入HDFS时很慢，要花很长时间做EncodeTimer，单此只有一个文件产生（FilesCreated：1）。
+分析：写入时花费了很长时间，尤其是写入格式类似于Parquet时；Impalad在写入文件是，同时产生的文件数等于分区数，没有分区时只会产生一个文件，当单个文件大小达到上限时，会创建新文件。
+优化:
+A:采用分压缩格式的Parquet，设置文件大小。
+set COMPRESSION_CODEC=NONE;
+set PARQUET_FILE_SIZE=1g;
+create table tmp_m_2_carl stored as  parquet
+
+5 只有scan和aggregate操作
+sets MT_DOP=4  增加并行度
+
+6 指定BroadCast join
+ /* +BROADCAST */ 
+
+
+
+Hive
+1 设置分区时，需要执行动态分区参数
+#开启动态分区：
+set hive.exec.dynamic.partition=true; 
+set hive.exec.dynamic.partition.mode=nonstrict; 
+#设置其他参数（可选）
+SET hive.exec.max.dynamic.partitions=100000;
+SET hive.exec.max.dynamic.partitions.pernode=100000;
+
+2 map消耗大量内存
+map数据partition时会保存在环形内存区域中，数据达到阈值（spill 默认为0.8）时就会溢写到disk，所以不会有内存溢出。但是在数据写入HDFS时，map会创建多个writerIO连接，并占用相当多的内存。
+分析：任务只有map，没有reduce时，每个map会产生很多个文件，数量等于分区数；当分区很多时，会占用大量的缓存，导致内存溢出。
+尤其是如map写入parquet格式，会占用更多的内存。
+测试发现parquet格式下调整blocksize，pagesize都没有效果，但是关闭dictionary可以明显的降低内存的消耗。
+优化：
+A：可以选择特定的分区字段添加reduce环节（distribute by），将不同分区的数据分开，降低Map的压力，但是这种情况下容易出现数据倾斜，个别reduce处理的数据量过大。
+B：输入数据提前分区，同时按目标分区的字段分桶，这样，每个Map只会产生少量的文件，同时避免每次操作时做全表扫面，产生太多的MapTask。
+C：执行多次，控制每次map产生的文件数量，如对分区字段添加范围筛选，每次只输出一部分。
+D：增大Map的内存；
+F：使用writer占内存较小的textfile格式，之后在转parquet。
+
+3 Reduce输出数据发生倾斜
+这种情况下，个别reduce任务需要处理大量的数据，此时可以想办法，将文件输出的过程在Map阶段完成，分散压力。
+比如distributeby 之后，个别数据不平衡的。可以先将distribute key做分散化处理，之后在聚合。或者先再高层级分区，之后在map端细分。
+
+
+
+Impala与Hive语法转换
+
+1 Impala的join on 条件中有OR语句
+  通过外连接关联后筛选出没有关联到的数据;
+  select b1.* from 
+         public_base_bak.pm00_base_plmn_operator b1  
+         left join  public_base_bak.pm00_base_operator_mbb c1
+                    on b1.iso=c1.iso 
+                    and (b1.operator_code=c1.operator_code or b1.org_operator_code=c1.operator_code) 
+                    where  c1.iso is null
+在关联语句的关联条件部分，Hive是不支持在关联条件中“or”的写法。
+此类语句也无法用exists语句替换，比较可行的方法是，通过多次join的方式，实现数据的筛选动作：
+select b1.* 
+    from 
+        public_base_bak.pm00_base_plmn_operator b1 
+        left join public_base_bak.pm00_base_operator_mbb c1
+             on b1.iso=c1.iso and b1.operator_code=c1.operator_code
+        left join public_base_bak.pm00_base_operator_code c2
+             on b1.iso=c2.iso and b1.org_operator_code=c2.operator_code
+    where c1.iso is null  and c2.iso is null
+如上，通过多次join以及添加过滤条件的方式也可以实现“or”的过程。
+
+2 impala 的group_concat 函数替换
+将impala 的group_concat 函数替换为hive的concat_ws + collect_list 函数组合；
+        Impala：group_concat(Type) as type_1
+        Hive: concat_ws(',',collect_list(Type)) as type_1
+
+3 impala的decode函数
+decode函数在Impalad中是多条件判断的执行过程。
+将impala的decode函数换成hive的case when 语句；
+        Impala：decode(true, instr(lower(m_2.app_platform_type),'ios')=0, app_id ,instr(lower(m_2.app_platform_type),'gp')=0,app_id) as app_id
+        Hive：(case  when instr(lower(m_2.app_platform_type),'ios') = 0 then app_id  when instr(lower(m_2.app_platform_type),'gp')= 0 then  app_id else null) as app_id
+
+4 impala 的isnull 函数
+impala 的isnull 函数替换为hive的COALESCE函数；
+impala：isnull(a21.etl_dt                 ,a11.etl_dt               )    as  etl_dt
+hive：COALESCE(a21.etl_dt                 ,a11.etl_dt               )    as  etl_dt
+
+
+
+
+
