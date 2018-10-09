@@ -87,6 +87,12 @@ CREATE  external  TABLE  demo_avro_2
   查看数据：
   hive> select *  from demo_avro_2； 显示正常结果数据。
   官网有完整例子。
+  
+ 导入外部parquet数据
+path： 
+  
+  
+  
 
 
 3 列转行聚合
