@@ -89,7 +89,24 @@ CREATE  external  TABLE  demo_avro_2
   官网有完整例子。
   
  导入外部parquet数据
-path： 
+path： /tmp/demo_parquet
+schema:
+外部表：
+CREATE external TABLE carl_test.demo_parquet_ext (
+  id INT,
+  name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs://cscloud-rs-hadoop124.huawei.com:8020/tmp/demo_parquet'
+或者内部表:
+CREATE TABLE carl_test.demo_parquet_ext (
+  id INT,
+  name STRING
+)
+STORED AS PARQUET
+LOCATION 'hdfs://cscloud-rs-hadoop124.huawei.com:8020/tmp/demo_parquet'
+
+
   
   
   
