@@ -103,6 +103,17 @@ F：使用writer占内存较小的textfile格式，之后在转parquet。
 
 
 
+Parquet 设置
+
+parquet的配置主要包括：
+
+parquet.compression  压缩格式
+
+parquet.block.size rowbatch
+ 
+parquet.page.size  最小的列压缩单元，默认为1M
+
+
 Impala与Hive语法转换
 
 1 Impala的join on 条件中有OR语句
