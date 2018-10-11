@@ -105,6 +105,22 @@ F：使用writer占内存较小的textfile格式，之后在转parquet。
 Impala参数设置
 1 statestore_update_frequency_ms
 元数据刷新频率，默认为两秒。
+Service	catalogHeapSize=20G	
+	idle_session_timeout=1800S	空闲session的超时时间；
+	idle_query_timeout=1800S	控制空闲query的超时时间；
+	load_catalog_in_background=true 	启动的时候加载全部元数据，
+	query_log_size=100	可在impalad管理页面查看更多的sql
+	accepted_cnxn_queue_depth=100000	分片通信的线程数，复杂SQL下设置
+		
+	cpu.shares=10240 	提高CPU的权重,静态资源池会覆盖
+	data_stream_sender_buffer_size	调整sender发送数据的batch大小，默认值为16384，当发现Exchangenode是瓶颈的时候可选，加快数据的传输，同时内存占用量会上升。建议不要大于exchg_node_buffer_size_bytes值得1%；
+	exchg_node_buffer_size_bytes	设置Exchange接收端缓存大小，默认为10485760
+	Impalad mem_limit	在没有配置节点内存上线的时候，单个query可能导致内存超出节点上线导致Impalad状态退出重启，此时所有运行的queries都会失败。
+	单节点瓶颈	Impalad的单个节点内存小于其他节点时，会应为单节点内存不足平凡的发生该节点退出，可行的做法是所有节点配置相同个的内存大小。
+Queries	set MAX_NUM_RUNTIME_FILTERS=50;	复杂sql下设置runtime filter的深度
+	"set sync_ddl=true
+"	负载均衡下设置元数据同步
+
 
 
 Parquet 设置
