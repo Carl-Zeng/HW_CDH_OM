@@ -102,6 +102,10 @@ F：使用writer占内存较小的textfile格式，之后在转parquet。
 比如distributeby 之后，个别数据不平衡的。可以先将distribute key做分散化处理，之后在聚合。或者先再高层级分区，之后在map端细分。
 
 
+Impala参数设置
+1 statestore_update_frequency_ms
+元数据刷新频率，默认为两秒。
+
 
 Parquet 设置
 
