@@ -144,6 +144,7 @@ load  data  local inpath '/root/carl/sex=4' into table partition_demo partition(
 #分区设置
 SET hive.exec.max.dynamic.partitions=100000;
 SET hive.exec.max.dynamic.partitions.pernode=100000;
+SET hive.exec.max.created.files=10000000;
 5 数据库
 # 删除数据库
 drop  database   dbname   cascade；
