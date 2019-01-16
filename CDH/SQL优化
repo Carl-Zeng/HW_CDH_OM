@@ -35,6 +35,9 @@ B：可以选择distribute by的环节，减少参与排序的数据量。
 集合操作慎用，如果可以，添加入distinct操作，减少集合元素的size。
 
 
+
+
+
 Impala
 1 Hash  Join 执行慢
 现状：对一个很大的表（几十亿行）做Join时，发现执行慢的环节主要在核心的梳理环节，如Exchange（partition） 或者前一步的Hash环节。
@@ -100,6 +103,17 @@ F：使用writer占内存较小的textfile格式，之后在转parquet。
 3 Reduce输出数据发生倾斜
 这种情况下，个别reduce任务需要处理大量的数据，此时可以想办法，将文件输出的过程在Map阶段完成，分散压力。
 比如distributeby 之后，个别数据不平衡的。可以先将distribute key做分散化处理，之后在聚合。或者先再高层级分区，之后在map端细分。
+
+4 内存设置
+set mapreduce.map.memory.mb=4096; 
+set mapreduce.map.java.opts=-Xmx3600m;
+
+
+
+
+
+
+
 
 
 Impala参数设置
