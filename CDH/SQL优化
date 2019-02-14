@@ -147,6 +147,8 @@ parquet.block.size rowbatch
  
 parquet.page.size  最小的列压缩单元，默认为1M
 
+parquet.memory.pool.ratio 设置parquet占用heap内存的比例，默认为0.5；
+
 
 Impala与Hive语法转换
 
