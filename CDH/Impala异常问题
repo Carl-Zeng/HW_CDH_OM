@@ -7,3 +7,10 @@ jvm.total.committed-usage-bytes
 jvm.total.max-usage-bytes  
 2) 应用频繁地做invalidate metadata. 您可以通过CM -> Impala -> Queries页面搜索近期执行完毕的查询, 看看是否最近invalidate metadata 明显增加
 3) 也有可能有其他原因, 不过需要结合 query profile 以及完整的日志才好继续调查.
+
+1 Impalad 出现内存溢出：
+java.lang.OutOfMemoryError 
+分析：Impalad 中内置JVM的heap太小；
+处置，增加jvm内存
+http://www.openkb.info/2017/09/how-to-modify-max-heap-size-for-impalad.html
+设置参数：-JAVA_TOOL_OPTIONS="-Xmx80g"
