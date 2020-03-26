@@ -1,0 +1,39 @@
+感谢您在休息时间接听我的电话。根据我们在电话里的讨论，当您能够重现这个问题的时候请按照如下步骤采集我们需要的信息：
+
+s
+
+1）在执行会卡死的查询之前，选择任意一个（将会执行HDFS SCAN操作）Impala节点作为采集数据的节点。根据您提供的query profile，coordinator节点同时也是executor节点。如果您知道哪一个节点是coordinator节点的话，您可以直接选择coordinator节点。
+
+2）用浏览器打开impala节点的Web UI。您可以从CM页面里导航到这个Impala节点的Web UI，也可以直接用地址http://impala_host:25000 （或者https://impala_host:25000，如果为Impala Daemon Webserver启用了SSL）。
+
+3）在Impala节点的Web UI上转到/log_level页面。修改如下配置（无需重启任何服务）
+3.1）在第二个输入框中输入“org.apache.hadoop.ipc”，然后把下面的Log level设置成TRACE，点击旁边的“Set Java Log Level“；
+3.2）在第二个输入框中输入“org.apache.hadoop.hdfs.DFSClient”，然后把下面的Log level设置成TRACE，点击旁边的“Set Java Log Level“；
+3.3）把最下面的Log Level设置成3，点击旁边的“Set Glog Level“。
+4）开始执行Impala查询，稍微等待一下以确定该查询已经卡死了。
+
+5）SSH登录到这个Impala节点上，以root用户身份运行脚本[1]采集Impalad进程的堆栈信息。如果没有root用户身份的话也可以用impala用户身份执行，但是要删除掉sudo -u impala的那三行。
+
+6）采集堆栈信息的脚本执行完成之后，到Impala节点的Web UI的/log_level页面，点击“Reset Java Log Levels”和“Reset Glog Levels“取消在第3）步里修改的日志级别。
+
+7）把以下信息打包发给我们：
+* 所有采集到的jstack和pstack文件
+* 包含了从该查询开始到堆栈信息采集完毕这段时间的Impala Daemon日志文件
+* 该查询的query profile（最好在取消该查询之后再采集profile）
+
+[1]
+for i in {1..20}
+do
+pstack `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p")_u_root.pstack 2>&1
+jstack -m -F `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p")_u_root.m.jstack 2>&1
+jstack -F `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p")_u_root.jstack 2>&1
+
+sudo -u impala pstack `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p").pstack 2>&1
+sudo -u impala jstack -m `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p").m.jstack 2>&1
+sudo -u impala jstack `pidof impalad` > impalad_$(date +"%Y_%m_%d_%I_%M_%S_%p").jstack 2>&1
+
+sleep 1
+done
+
+
+
