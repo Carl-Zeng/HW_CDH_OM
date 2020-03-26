@@ -43,6 +43,27 @@ PS Old Generation
    used     = 11247333408 (10726.292999267578MB)
    free     = 34566000608 (32964.70700073242MB)
    24.550349040460457% used
+   
+   
+ JVM 内存模型介绍
+ https://www.jianshu.com/p/76959115d486
+ 
+ JVM 内存参数
+ https://blog.csdn.net/WYpersist/article/details/80550815
+ 
+ JVM内存监控工具
+ https://blog.csdn.net/zmx729618/article/details/78392715
+ https://baijiahao.baidu.com/s?id=1639024706303844305&wfr=spider&for=pc
+ 
+ 
+ 
+ 
+   
+   
+   
+   
+   
+   
 
 378938 interned Strings occupying 95171136 bytes.
 root@cscloud-cs3-hadoop01.huawei.com:[/root]
