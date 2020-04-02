@@ -1,0 +1,59 @@
+1 安装ranger admin
+2 安装usersync
+
+CDH6.2 部署 ranger2.0
+https://blog.csdn.net/weixin_34200628/article/details/92335367
+问题1 ：CM无法识别ranger的配置信息
+需要手工添加到CM参数列表中；
+<property>
+        <name>hive.security.authorization.enabled</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>hive.security.authorization.manager</name>
+        <value>org.apache.ranger.authorization.hive.authorizer.RangerHiveAuthorizerFactory</value>
+    </property>
+    <property>
+        <name>hive.security.authenticator.manager</name>
+        <value>org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator</value>
+    </property>
+    <property>
+        <name>hive.conf.restricted.list</name>
+        <value>hive.security.authorization.enabled,hive.security.authorization.manager,hive.security.authenticator.manager</value>
+    </property>
+</configuration>
+问题2 ：ranger Jar 添加到hive路路径下
+手工copy到Hive lib目录即可。
+
+问题3：xasecure-audit.xml 文件不存在
+这个是遗留的空文件，可以copy新的文件，修改表名即可：ranger-hive-audit.xml
+
+问题4：CM启动时无法识别/etc/hive/conf 下面的配置文件
+修改Hive的启动脚本，在进程启动前，手工copy  ranger的配置问价到hive的进程配置文件目录下（process/conf）
+
+问题5：hive执行SQL时报java.lang.NoSuchFieldError: REPLDUMP、java.lang.NoSuchFieldError: REPLLOAD
+修改ranger  hive-plugin的源码，在RangerHiveAuthorizer.java 中注释REPLDUMP、REPLLOAD影响的逻辑代码；
+
+HDFS集成ranger
+https://cwiki.apache.org/confluence/display/RANGER/Ranger+Installation+Guide#RangerInstallationGuide-Install/ConfigureRangerHDFSPlugin
+配置参数
+
+<property>
+        <name>dfs.permissions.enabled</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>dfs.permissions</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>dfs.namenode.inode.attributes.provider.class</name>
+        <value>org.apache.ranger.authorization.hadoop.RangerHdfsAuthorizer</value>
+</property>
+
+问题2 类加载失败：
+ranger-hdfs-plugin-shim-2.0.0.jar 包不能放到hdfs路径下；
+
+问题3：xasecure-audit.xml 文件不存在
+这个是遗留的空文件，可以copy新的文件，修改表名即可：ranger-hdfs-audit.xml
+
