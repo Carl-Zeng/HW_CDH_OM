@@ -1,0 +1,46 @@
+Hive 授权机制解决了hive数据以及元数据的访问控制问题
+
+参考文章：
+hive授权方案介绍：
+https://cwiki.apache.org/confluence/display/Hive/LanguageManual+Authorization#LanguageManualAuthorization-3AuthorizationusingApacheRanger&Sentry
+hive新建目录权限继承
+https://cwiki.apache.org/confluence/display/Hive/Permission+Inheritance+in+Hive
+
+
+1 hive访问场景
+1） 直接访问hdfs数据，通过HiveMetastore访问元数据（Impala，Pig等）；
+2） 通过SQL接口访问数据
+a Hive Client 访问Hive，虽然是通过SQL接口，但是可以直接访问hdfs目录；
+b 通过Beeline等JDBC方式，只能通过SQL接口访问数据。
+
+2 Hive的用户
+Hive中两种用户：SQL提交用户和SQL执行用户；
+SQL提交用户指SQL任务的实际提交用户，如连接Beeline时指定的连接用户；
+SQL执行用户指实际执行SQL任务的用户身份；
+SQL执行用户可能是SQL提交用户，也可以是hiveserver2进程的启动用户；这中选择是通过参数hive.server2.enable.doAs控制的。
+CDH默认情况下hive.server2.enable.doAs=true。这是一个客户端参数，需要客户端配置中进行设置。
+
+3 Hive授权策略
+基于上述需求，Hive的权限控制有两点，控制数据的访问权限、控制metadata的访问权限。
+Hive的访问控制是基于SQ提交用户身份实现的，Hive提供了三种策略来满足上述需求：
+
+1） 基于存储目录权限的访问控制；
+这中策略下Hive本身不设置任何权限，用户能否访问数据对象（数据库，数据表，数据文件），完全取决于该用户是否有权限访问HDFS上对应的数据目录权限。Hive完全继承了这些权限。
+对于访问场景1以及2a，可以采用这种方式。
+
+2） 基于标准SQL格式的授权方式
+采用了SQL格式的授权方式，用于兼容其他SQL版本。不支持HiveClient场景。提供了细粒度的授权方式。
+
+3） 外部组件
+通过Sentry/ranger外部组件，引入组件存储的授权策略。这种场景下，授权管理方便，功能也更加丰富。
+
+
+4 Hive继承目录权限
+某些场景下，Hive创建的目录或文件希望直接继承父路径的权限。Hive对这种需求做了细化并做了不同的支持。
+参数hive.warehouse.subdir.inherit.perms=ture，默认是开启这种开启这种策略的。
+
+
+
+
+
+
