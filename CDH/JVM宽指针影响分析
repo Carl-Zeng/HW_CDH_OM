@@ -1,0 +1,146 @@
+参考链接：
+
+http://arganzheng.life/the-side-effect-of-huge-java-heap-size.html
+https://view.inews.qq.com/a/20180906B0QBHH00
+
+JVM Heap在32760m附近开启宽指针模式；
+
+宽指针以为者存储单个对象需要占用跟多的heap内存空间，同时增加了访问每个对象是的内存消耗。
+
+测试数据：
+JDK1.8
+
+heap/G	创建对象上限个数
+28	29697500
+29	30758200
+30	31818500
+31	32879200
+32	26423400
+33	27248500
+34	28074600
+35	28900400
+36	29725500
+37	30551600
+38	31377600
+39	32202700
+40	33028600
+41	33854800
+
+
+
+结论;
+1: 当heap大小设为32G时，实际可存储的对象数量较31G下降了20%。
+2：宽指针模式下，与31G相比，存储相同数量的对象，占用的内存增加了近30%；即31GHeap存储的对象数量与40GHeap存储的对象数量相当。
+3：更大的指针降低了CPU的处理效率以及内存访问效率，表现为CPU消耗增加。
+4：宽指针模式对多对象引用的影响比数组这类结构影响更大。
+
+实际应用:
+1:现实中，习惯设置Heap为32G的，若修改为31G，内存效率反而跟高。
+2：若31GHeap明显不够用，增加内存时，至少增加30%才会增加有效内存。
+3：内从从31G增加后系统可能出现响应时间延迟的现象，这是正常的。
+
+
+对象代码如下：
+/**
+ * 
+ */
+package service;
+
+import java.util.LinkedList;
+import java.util.List;
+
+/**
+ * @author Ht
+ * @date 2020年4月2日
+ * @version 1.0
+ */
+public class HeadTest  {
+	
+	List<DemoNarrow> list = new LinkedList<DemoNarrow>();
+	volatile int count = 0;
+	public static void main(String[] args) {
+		HeadTest HeadTest = new HeadTest();  
+		Thread thread1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+            	try {
+					HeadTest.dontStop();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+            }
+        });
+
+		
+	    thread1.start();
+
+	}
+     
+	 private void dontStop() throws InterruptedException {
+	        while (true) {
+	        	DemoNarrow demoNarrow = new DemoNarrow();
+				list.add(demoNarrow);
+				if(count%100 == 0)
+					System.out.println(  " count : " +  count     );
+				count ++;	 
+	        }
+	    }
+
+	
+}
+
+class DemoNarrow {
+    String  str = "abc"; 
+    int [] array0 = {1,2,3,4,5};
+    int [] array1 = {1,2,3,4,5};
+    int [] array2 = {1,2,3,4,5};
+    int [] array3 = {1,2,3,4,5};
+    int [] array4 = {1,2,3,4,5};
+    int [] array5 = {1,2,3,4,5};
+    int [] array6 = {1,2,3,4,5};
+    int [] array7 = {1,2,3,4,5};
+    int [] array8 = {1,2,3,4,5};
+    int [] array9 = {1,2,3,4,5};
+    
+	 int [] array00 = {1,2,3,4,5};
+    int [] array11 = {1,2,3,4,5};
+    int [] array22 = {1,2,3,4,5};
+    int [] array33 = {1,2,3,4,5};
+    int [] array44 = {1,2,3,4,5};
+    int [] array55 = {1,2,3,4,5};
+    int [] array66 = {1,2,3,4,5};
+    int [] array77 = {1,2,3,4,5};
+    int [] array88 = {1,2,3,4,5};
+    int [] array99 = {1,2,3,4,5};
+    
+    Demo demo = Demo.demo;
+  
+}
+
+class Demo {
+	static Demo demo = null;
+	private Demo() {		
+	}
+	static Demo  getDemo() {
+		if (demo  == null) {
+			demo = new Demo();
+		}
+		return demo;
+	}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
