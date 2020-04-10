@@ -1,5 +1,13 @@
-本测试在192.168.2.184集群上进行，在192.168.2.185上安装mysql，使之与原有的192.168.2.184上的mysql互为主从(双主模式)。 
+硬件要求：由于没有安装大型软件，配置mysql ha不需要使用大量内存、磁盘、CPU，所以不需要对现有集群做硬件升级。
+系统要求：需要安装mysql、keepalived，需要申请一个虚拟ip。
+实施条件：需要修改mysql的配置和集群数据库的配置，因此mysql和集群要有短暂的停机窗口；实施中有备份数据的过程，因此可以随时还原到配置mysql ha之前的状态。
 
+
+本测试在192.168.2.184集群上进行，在192.168.2.185上安装mysql，使之与原有的192.168.2.184上的mysql互为主从(双主模式)。 
+参考文章：
+MySQL互为主从复制以及负载均衡的配置：http://3ms.huawei.com/km/blogs/details/6347827
+keepalived的安装与配置：https://blog.csdn.net/bbwangj/article/details/80346428
+keepalived保证mysql主从自动切换：https://www.jianshu.com/p/8a5308888ef1
 
 1.在192.168.2.185上安装 mysql
 yum install mariadb-embedded mariadb-libs mariadb-bench mariadb  mariadb-server
@@ -23,7 +31,7 @@ mysqldump -u root -p --all-databases > backdb.sql
 mysql -uroot -phuawei < backdb.sql
 
 确保mysql scm用户可以远程登录
-在192.168.2.185 进入mysql 
+在192.168.2.185 进入mysql
 mysql –uroot –phuawei
 GRANT ALL PRIVILEGES ON *.* TO 'scm'@'%' IDENTIFIED BY 'scm' WITH GRANT OPTION; 
 FLUSH PRIVILEGES;
@@ -46,7 +54,7 @@ relay-log = relay-mysql
 relay-log-index =relay-mysql.index   
 log_slave_updates=on
 auto-increment-increment = 2
-auto-increment-offset = 1  # 两台主机的起步要不同，在192.168.2.185上写的是2
+auto-increment-offset = 1  # 两台主机的偏移值要不同，在192.168.2.185上写的是2
 binlog_format=ROW 
 
 两个节点重启mysql：service mariadb restart
@@ -61,7 +69,7 @@ reset slave;
 
 分别在两个节点上执行：SHOW MASTER STATUS;(注意file和position两个字段的值)
 
-分别重新打开一个mysql控制台（重要）,接下来的操作均在新开的控制台进行。
+分别重新打开一个mysql控制台（重要！保留原来的两个窗口，在新窗口登录192.168.2.184、192.168.2.185服务器，并进入mysql控制台）,接下来的操作均在新开的控制台进行。
 在192.168.2.184上执行：
 change master to
 master_host='192.168.2.185',//另一台主机的ip
@@ -222,6 +230,3 @@ b.Master和slave同时宕掉？
 
 c.Master宕掉三天以后再恢复？ 
 测试数据显示，从节点mysql宕机超过十天再恢复，主从mysql数据同步都是正常的。
-
-
-
