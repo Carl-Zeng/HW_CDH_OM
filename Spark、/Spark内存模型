@@ -1,6 +1,7 @@
 SparkExecutor的内存可分为对外内存和堆内内存。
 
 详细的应用划分参考链接;
+https://blog.csdn.net/pre_tender/article/details/101517789
 https://blog.csdn.net/pre_tender/article/details/101517789?depth_1-utm_source=distribute.pc_relevant.none-task-blog-OPENSEARCH-4&utm_source=distribute.pc_relevant.none-task-blog-OPENSEARCH-4
 https://blog.csdn.net/qq_16038125/article/details/80359414
 https://www.jianshu.com/p/999ef21dffe8
