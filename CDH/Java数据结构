@@ -23,6 +23,25 @@ Queue
 3．LinkedList:元素单个，多用于插入和删除 
 4．HashMap: 元素成对，元素可为空 
 5．HashTable: 元素成对，线程安全，元素不可为空 
+
+
+
+
+双重校验单例模式
+public class Singleton {
+    private static volatile Singleton instance = null;
+    private Singleton(){}
+    public static Singleton getInstance() {
+        if (instance == null) {
+            synchronized (Singleton.class) {
+                if (instance == null) {
+                    instance = new Singleton();
+                }
+            }
+        }
+        return instance;
+    }
+
 ————————————————
 
 
