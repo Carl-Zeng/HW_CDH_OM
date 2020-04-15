@@ -1,0 +1,29 @@
+List
+ArryList  /  LinkedList
+ 
+Set   
+HashSet /    LinkedHashSet /    SortedSet    / 
+
+Map
+HashMap   /  TreeMap    / LinkedHashMap  
+
+Stack
+import java.util.Stack;
+
+Queue
+ Queue<String> queue = new LinkedList<String>();   //List实现了Queue接口。
+
+
+
+
+
+一、几个常用类的区别 
+1．ArrayList: 元素单个，效率高，多用于查询 
+2．Vector: 元素单个，线程安全，多用于查询 
+3．LinkedList:元素单个，多用于插入和删除 
+4．HashMap: 元素成对，元素可为空 
+5．HashTable: 元素成对，线程安全，元素不可为空 
+————————————————
+
+
+
