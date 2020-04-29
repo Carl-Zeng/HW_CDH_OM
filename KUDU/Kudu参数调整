@@ -1,0 +1,10 @@
+1 kudu密集写入时发生diskIO瓶颈，发现Tablet在做频繁的DiskRowSets Compaction   
+原理参考链接
+https://www.jianshu.com/p/f6fb1f972607
+https://github.com/apache/kudu/blob/master/docs/design-docs/tablet.md
+https://kudu.apache.org/docs/configuration_reference.html#kudu-master_compaction_minimum_improvement
+频繁的Compaction发生在数据写入的过程中，调整如下参数;
+--compaction_minimum_improvement  
+默认值为0.01，表示合并后的DiskRowSets平均高度增高1%，这次合并即可执行。持续的数据写入，由于有新新的DRS产生，针对同一批数据，回不断的执行compact操作。
+可以适当的调高这个比例，提高执行compact的门槛，风险是单次回合并更多的数据/DRS。
+设置： --compaction_minimum_improvement=0.05
