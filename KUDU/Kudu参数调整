@@ -19,5 +19,7 @@ https://kudu.apache.org/docs/configuration_reference.html#kudu-master_compaction
 内存使用达到硬限制的60%后内存，对flashMem进行优先级排序。
 --memory_limit_soft_percentage=80
 内存使用达到硬限制达到80%后控制写操作请求，增加延迟。
+-memory_limit_hard_bytes=10737418240
+Kudu设置的HardMemary上限，这个参数在CDH配置中对应的是软限制参数：memory.soft_limit_in_bytes
 
 
