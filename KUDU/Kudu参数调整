@@ -14,4 +14,10 @@ https://kudu.apache.org/docs/configuration_reference.html#kudu-master_compaction
 --flush_threshold_mb=2048
 
 
+2 Kudu内存限制参数
+--memory_pressure_percentage=60
+内存使用达到硬限制的60%后内存，对flashMem进行优先级排序。
+--memory_limit_soft_percentage=80
+内存使用达到硬限制达到80%后控制写操作请求，增加延迟。
+
 
