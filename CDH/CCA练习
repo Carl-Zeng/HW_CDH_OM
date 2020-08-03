@@ -122,3 +122,7 @@ LOCATION 'hdfs://cscloud-rs-hadoop124.huawei.com:8020/tmp/demo_parquet'
 parquet
 textfile
 SEQUENCEFILE；
+
+
+
+
