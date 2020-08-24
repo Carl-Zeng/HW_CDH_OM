@@ -1,0 +1,36 @@
+Ambari 部署Impala 需要确认Hadoop以及Impala的版本号。
+
+参考链接：
+https://my.oschina.net/u/4268252/blog/3670821
+https://www.cnblogs.com/barneywill/p/10290849.html
+
+Ambari安装Impala插件
+下载插件
+确认HDP版本
+VERSION=`hdp-select status hadoop-client | sed 's/hadoop-client - [0−9]\.[0−9][0−9]\.[0−9].*/\1/'`
+下载插件
+sudo git clone https://github.com/julyme/ambari-impala-service.git /var/lib/ambari-server/resources/stacks/HDP/$VERSION/services/IMPALA
+Ambari安装插件
+ # ambari-server install-mpack --mpack=/var/lib/ambari-server/resources/stacks/HDP/$VERSION/services/IMPALA/ambari-impala-mpack-2.6.0-0816.tar.gz --verbose
+
+
+安装Impal
+检查HDP以及Impala版本号
+/var/lib/ambari-server/resources/mpacks/ambari-impala-mpack-2.6.0-0816/mpack.json
+配置impala 的rpm源，可以使用CDH打包的rpm包，或者自己打包
+# cat /etc/yum.repos.d/impala.repo
+[cloudera-cdh5]
+# Packages for Cloudera's Distribution for Hadoop, Version 5, on RedHat or CentOS 7 x86_64
+name=Cloudera's Distribution for Hadoop, Version 5
+baseurl=https://archive.cloudera.com/cdh5/redhat/7/x86_64/cdh/5/
+gpgkey =https://archive.cloudera.com/cdh5/redhat/7/x86_64/cdh/RPM-GPG-KEY-cloudera
+gpgcheck = 1
+
+当前Impala的配置文件可能不兼容，导致安装时包Impala用户组无法初始化错误。
+修改Impala插件中的Impala配置文件，添加用户对应的用户组信息。
+
+安装完成后，启动Impala。
+
+
+
+
