@@ -535,4 +535,49 @@ group_name_attr: cn
 在LDAP中创建账户hueldap4/hueldap.
 可以直接登录为Hue普通用户。
 
+配置如下Hive参数
+启用 LDAP 身份验证：true
+hive.server2.authentication.ldap.url： ldap://cloudera01.AAS.com:389
+hive.server2.authentication.ldap.baseDN： ou=Users,dc=AAS,dc=com
+
+修改Hue的参数吗，默认Hive的认证方式为Kerberos
+添加参数：hive.server2.authentication = kerberos
+
+Hive访问方式
+LDAP认证
+beeline -u "jdbc:hive2://cloudera03.AAS.com:10000/default" -n hueldap7 -p hueldap
+Kerberos认证
+beeline -u "jdbc:hive2://cloudera03.AAS.com:10000/;principal=hive/cloudera03.AAS.com@AAS.COM"
+注意：Hive 命令行工具不支持安全集成。
+
+5.5 Impala集成LDAP测试
+配置Impala如下参数：
+backend: desktop.auth.backend.LdapBackend
+ldap_url: ldap://cloudera01.AAS.com:389
+ldap_username_pattern: uid=<username>,ou=Users,dc=AAS,dc=com
+create_users_on_login: true
+search_bind_authentication: true
+base_dn: dc=AAS,dc=com
+bind_dn: cn=admin,dc=AAS,dc=com
+bind_password: AAS@123
+user_name_attr: uid
+group_name_attr: cn
+Impala未启用TSL加密，需要设置Impalad环境变量参数：
+--ldap_passwords_in_clear_ok=true
+
+Impala访问方式
+LDAP认证：
+impala-shell  -l -u tpc --auth_creds_ok_in_clear
+beeline -u "jdbc:hive2://cloudera01.AAS.com:21050/default;user=tpc;password=tpc"
+kerberos认证
+$kinit  tpc
+$impala-shell
+$beeline -u "jdbc:hive2://cloudera01.AAS.com:21050/;principal=impala/cloudera01.AAS.com@AAS.COM"
+
+在kerberos环境中Impala启用LDAP后，Impala的认证方式是Kerberos与LDAP并存。链接时，只选择其中一种即可。
+Kerberos模式下，用户与用户组的关系是同本地捕捉的。访问账户需要在本地存在，否则，Hive无法捕捉到用户组的信息，权限会不准。
+
+
+
+
 
