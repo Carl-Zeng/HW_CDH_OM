@@ -269,3 +269,68 @@ addprinc  test
 Cloudera 自动生成 CDHkeytab文件
 
 
+4.6 Sentry 部署
+4.6.1 安装Sentry服务
+创建Sentry元数据库
+CREATE DATABASE sentry DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+GRANT ALL ON sentry.* TO 'root'@'%' IDENTIFIED BY 'AAS';
+参照官网文档，在CDH启用Sentry。
+4.6.2 Hive/impala 启用Sentry
+启用Sentry
+4.6.3 HDFS启用Sentry同步
+HDFS 开启权限验证模式；
+开启HDFS 的 Sentry同步
+
+
+4.7 在Sentry中初始化hive数据管理员权限
+
+用hive账户登录hive
+初始化ktg
+kinit   hive  
+登录Hive
+beeline -u "jdbc:hive2://172.19.2.186:10000/default;principal=hive/cloudera03.AAS.com@AAS.COM"
+这里的 principal 是固定不变的，其指的 hive 服务所对应的 principal ，而不是用户所对应的 principal 。
+执行授权命令
+create  role admin_role;      #管理员角色
+#指定hive数据库的权限管理员
+grant all on server server1 to role admin_role;
+grant role admin_role to group `hive`;
+grant role admin_role to group `impala`;
+grant role admin_role to group `hdfs`;
+
+4.8 添加新用户并授权
+创建tpc账户用于tpc测试
+在cloudera03 创建本地用户tpc:tpc
+新用户在KDC注册
+kadmin.local -q ' addprinc  tpc'
+为新用户授予tpc数据库的操作权限
+以hive账户登录hive，执行命令
+create  role tpctest_role;      #创建角色
+grant all on database  tpcds_parquet  to  role tpctest_role;     #为角色授权
+grant role tpctest_role to group `tpc`;      #将权限授予对应的用户组
+show role grant group tpc;              #检查授权结果
+登录测试：
+kinit  tpc  
+#登录Hive
+beeline -u "jdbc:hive2://172.19.2.186:10000/default;principal=hive/cloudera03.AAS.com@AAS.COM"
+0: jdbc:hive2://172.19.2.186:10000/default> show  databases;
++----------------+
+| database_name  |
++----------------+
+| default        |
+| tpcds_parquet  |
++----------------+
+2 rows selected (0.34 seconds)
+4.9 为HDFS目录授权
+先在HDFS中将需要授权的路径添加到Sentry同步路径集中。
+create  role tpc_hdfs_role;
+grant all on uri   '/tpc' to role tpc_hdfs_role;
+grant role tpc_hdfs_role to group `tpc`;
+Sentry对 HDFS目录的授权仅对HiveSQL有效，可用于控制Hive外部表权限，且授权成功后，即使在Sentry中解除这种授权，HiveSQL任然可以访问这些数据。
+
+4.10 Hue中进行授权
+Hue中授权是以Hue中的账户列表为基础了，这些账号与Linux系统账号对应。但是Hue不能自动识别Linux的账号。Hue通过识别Linux系统的用户信息，查找用户与用户组的对应关系。
+需要在Hue中手动创建与Linux账户对应的Hue账号。然后再以特定的账号登录系统进行授权操作。
+
+
+
