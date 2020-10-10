@@ -578,6 +578,28 @@ $beeline -u "jdbc:hive2://cloudera01.AAS.com:21050/;principal=impala/cloudera01.
 Kerberos模式下，用户与用户组的关系是同本地捕捉的。访问账户需要在本地存在，否则，Hive无法捕捉到用户组的信息，权限会不准。
 
 
+6 CDH中的User-Group Mapping
+当启用Kerberos + Sentry 后CDH已经实现了认证与授权，但是在Sentry中，授权是以用户组为对象的，而在Kerberos中创建用户，没有相关用户组信息，因此，需要解决用户到用户组的Mapping信息。
+6.1 默认情形
+使用哪种映射方式由hadoop的hadoop.security.group.mapping参数决定，该参数默认为org.apache.hadoop.security.ShellBasedUnixGroupsMapping即基于操作系统的用户和组映射。
+在hadoop中时通过在namenode节点执行bash –c groups 获取的。
+在impala中是通过在链接的Impalad节点获取的（即使Impala启用了LDAP也是如此）。此时，当Hadoop添加新用户时，需要在Kerberos中注册新用户，同时也需要在所有Impalad节点上创建对应的用户。
+6.2 LDAP选项
+CDH允许使用通过LDAP获取用户的用户组信息。需要在HDFS中配置对应的LDAP信息。
+hadoop.security.group.mapping： org.apache.hadoop.security.LdapGroupsMapping
+
+相关LDAP参数如下：
+hadoop.security.group.mapping: org.apache.hadoop.security.LdapGroupsMapping
+hadoop.security.group.mapping.ldap.url: ldap://cloudera01.AAS.com:389
+hadoop.security.group.mapping.ldap.bind.user： cn=admin,dc=AAS,dc=com
+hadoop.security.group.mapping.ldap.bind.password： AAS@123
+hadoop.security.group.mapping.ldap.base： dc=AAS,dc=com
+hadoop.security.group.mapping.ldap.search.filter.user： (&(ou=Users)(uid={0}))
+hadoop.security.group.mapping.ldap.search.filter.group： (ou=Group)
+hadoop.security.group.mapping.ldap.search.attr.member： gidNumber
+
+在开发环境，还可以直接在配置文件中使用hadoop.user.group.static.mapping.overrides参数来指定指定用户和组的映射关系，例如：user1=group1,group2;user2=;user3=group2.如果在此处配置了用户和组的关系，会覆盖group mapping service provider提供的组映射。对于在此处存在的用户和组关系会直接返回，而无需进一步查询group mapping service provider。
+
 
 
 
