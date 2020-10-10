@@ -35,3 +35,237 @@ Sentry权限设计只对HiveSQL/impala有效， Sentry也可以对HDFS特定目�
 4）Sentry授权只能对用户组授权，授权最细粒度为列Column。
 5）Hue的用户与Linux用户是按名称对应的，但是需要手动创建，不能自动识别。
 6）所有的Hadoop客户端都需要做Kerberos适配。
+
+4 安全方案部署实施
+4.1 测试环境 
+准备测试账户
+Kerberos 管理账号：admin ： AAS@123
+Cloudera Kerberos管理员账号：  cloudera-scm  :  AAS@123
+HDFS超级账户：hdfs：hdfs
+Hive超级账户： hvie：hive
+Impala超级账户：impala：impala
+测试账号;  tpc ： tpc
+测试环境地址
+CDH 地址：http://172.19.2.184:7180/cmf/home
+Kerberos 地址： Master: cloudera02.AAS.com   备：cloudera03.AAS.com
+OpenLDAP地址：cloudera01.AAS.com
+4.2 Kerberos部署
+参考文档
+安装链接:
+https://www.jianshu.com/p/544aeacc803b
+排错链接;
+https://www.cnblogs.com/barneywill/p/10398663.html
+参数解释
+https://www.cnblogs.com/wn1m/p/10700466.html
+4.2.1 在cloudera03节点部署KDC
+##执行命令
+yum -y install krb5-server krb5-libs krb5-auth-dialog1 krb5-workstation
+4.2.2配置kdc.conf 文件/var/kerberos/krb5kdc/kdc.conf
+vi /var/kerberos/krb5kdc/kdc.conf
+[kdcdefaults]
+kdc_ports = 88
+kdc_tcp_ports = 88
+[realms]
+AAS.COM = {
+#master_key_type = aes256-cts
+acl_file = /var/kerberos/krb5kdc/kadm5.acl
+dict_file = /usr/share/dict/words
+admin_keytab = /var/kerberos/krb5kdc/kadm5.keytab
+max_renewable_life = 7d 0h 0m 0s
+default_principal_flags = +renewable 
+supported_enctypes = aes128-cts:normal des3-hmac-sha1:normal arcfour-hmac:normal des-hmac-sha1:normal des-cbc-md5:normal des-cbc-crc:normal
+}
+
+#log path
+[logging]
+ default = FILE:/var/log/krb5/krb5libs.log
+ kdc = FILE:/var/log/krb5/krb5kdc.log
+ admin_server = FILE:/var/log/krb5/kadmind.log
+
+
+4.2.3修改kerberos客户端配置文件
+vi /etc/krb5.conf
+
+[libdefaults]
+ default_realm = AAS.COM    ##默认域
+ dns_lookup_realm = true   ##false 时CM自动生成keytab失败
+ dns_lookup_kdc = true
+ ticket_lifetime = 24h
+ renew_lifetime = 7d
+ forwardable = true
+
+#注意的是node1是你kdc服务的主机host
+#作用域一般一个集群配一个足矣
+[realms]
+ AAS.COM = {
+  kdc = cloudera03.AAS.com
+  admin_server = cloudera03.AAS.com
+ }
+
+[domain_realm]
+ .AAS.com = AAS.COM
+ AAS.com = AAS.COM 
+
+4.2.4修改/var/kerberos/krb5kdc/kadm5.acl配置
+vi /var/kerberos/krb5kdc/kadm5.acl
+#/admin结尾的都是带有管理权限的principal
+*/admin@ AAS.COM    *
+4.2.5 初始化Kerberos database
+默认数据库路径为/var/kerberos/krb5kdc
+$kdb5_util create –r AAS.COM -s   
+初始化密码为AAS@123;
+创建管理员账号
+kadmin.local
+#然后输入 
+addprinc admin/admin@AAS.COM
+#管理员密码为:kerberos
+#提示 created关键字之后，输入 exit退出
+exit 
+配置kerberos启动项
+chkconfig krb5kdc on
+chkconfig kadmin on
+service krb5kdc start
+service kadmin start
+测试管理员账号
+Kinit  admin/admin 
+Klist
+
+4.2.6其他节点安装kerbetros客户端
+yum -y install krb5-libs krb5-workstation 
+复制/etc/krb5.conf 到各个客户端节点
+
+4.3 KDC高可用部署
+在cloudera02备节点安装Kerberos服务
+yum -y install krb5-server krb5-libs krb5-auth-dialog krb5-workstation
+注意：此处只安装服务，暂不做相应配置及启动服务。
+
+主节点操作
+修改/etc/krb5.conf 文件
+#修改域部分,添加备节点
+[realms]
+  AAS.COM = {
+  kdc = cloudera03.AAS.com
+  admin_server = cloudera03.AAS.com
+  default_realm = AAS.COM
+kdc = cloudera02.AAS.com
+ }
+
+重启主节点的kdc服务
+service krb5kdc restart
+service kadmin restart
+
+创建主机账号，并为账号生成keytab文件
+kadmin.local
+kadmin.local:  addprinc -randkey host/cloudera03.AAS.com
+kadmin.local:  addprinc -randkey host/cloudera02.AAS.com
+kadmin.local:  
+kadmin.local:  ktadd host/cloudera03.AAS.com
+kadmin.local:  ktadd host/cloudera02.AAS.com
+
+复制以下文件到从Kerberos服务器相应目录
+scp /etc/krb5.conf root@cloudera02.AAS.com:/etc/
+scp /etc/krb5.keytab root@cloudera02.AAS.com:/etc/
+scp /var/kerberos/krb5kdc/.k5.AAS.COM root@cloudera02.AAS.com:/var/kerberos/krb5kdc/
+scp /var/kerberos/krb5kdc/kadm5.acl root@cloudera02.AAS.com:/var/kerberos/krb5kdc/
+scp /var/kerberos/krb5kdc/kdc.conf  root@cloudera02.AAS.com: /var/kerberos/krb5kdc/
+
+配置从节点
+在从节点创建文件/var/kerberos/krb5kdc/kpropd.acl，配置文件中添加对应账户
+
+host/cloudera03.AAS.com@AAS.COM
+host/cloudera02.AAS.com@AAS.COM
+
+添加如下信息到/etc/inetd.conf
+krb5_prop stream tcp nowait root /usr/sbin/kpropd kpropd
+
+添加如下信息到/etc/services
+krb5_prop       754/tcp               # Kerberos replica propagation
+
+从节点启动kpropd进程
+$service kprop  start 
+$chkconfig  kprop  on
+
+平时 –分
+将主节点数据同步到从节点
+在主节点执行
+$kdb5_util dump /var/kerberos/krb5kdc/master.dump
+$kprop -f /var/kerberos/krb5kdc/master.dump   -d cloudera02.AAS.com
+32768 bytes sent.
+45389 bytes sent.
+Database propagation to cloudera02.AAS.com: SUCCEEDED
+显示数据传输完成。
+
+启动从节点KDC进程
+service krb5kdc  start
+主节点数据自动同步到从节点
+vim kprop_sync.sh
+#!/bin/bash
+source /etc/profile
+echo "开始dump数据库文件"
+DUMP=/var/kerberos/krb5kdc/master.dump
+PORT=754
+SLAVE="cloudera03.AAS.com"
+TIMESTAMP=`date`
+echo "Start at $TIMESTAMP"
+kdb5_util dump $DUMP
+kprop -f $DUMP -d -P $PORT $SLAVE
+
+主节点数据灭分钟同步一次到从节点
+crontab -e
+#每分钟同步一次
+* * * * * sh /var/kerberos/krb5kdc/kprop_sync.sh > /var/kerberos/krb5kdc/lastupdate
+:wq
+
+同步数据调试命令
+备节点：
+env KRB5_TRACE=/dev/stdout kpropd
+主节点:
+env KRB5_TRACE=/dev/stdout kdb5_util dump /var/kerberos/krb5kdc/master.dump
+env KRB5_TRACE=/dev/stdout kprop -f /var/kerberos/krb5kdc/master.dump   -d cloudera03.AAS.com
+
+4.4 Kerberos主备切换
+将旧Master的数据手动同步到到其他从节点
+$kdb5_util dump /var/kerberos/krb5kdc/master.dump
+$kprop -f /var/kerberos/krb5kdc/master.dump   -d cloudera02.AAS.com
+
+旧主节点准备kpropd.acl文件
+启动kpropd进程
+$kpropd
+
+删除原备节点的kpropd.acl文件
+cd /var/kerberos/krb5kdc
+mv kpropd.acl kpropd.acl-back
+修改/etc/krb5.conf，其中KDC的顺序调整，kerberos默认访问第一个KDC进行认证服务
+[realms]
+AAS.COM = {
+  kdc = cloudera02.AAS.com
+  kdc = cloudera03.AAS.com
+  admin_server = cloudera02.AAS.com
+  default_realm = AAS.COM
+ }
+
+在cloudera02节点启动kadmin进程
+$service  kadmin  start 
+
+
+4.5 Cloudera 集成Kerberos
+创建Cloudera kerberos管理员账户
+#在KDC中给Cloudera Manager添加管理员账号
+#在KDC服务所在的机器操作
+kadmin.local
+addprinc cloudera-scm/admin@AAS.COM
+#密码:AAS@123
+添加其他账户：
+addprinc    hive
+addprinc    impala
+addprinc    hdfs
+addprinc    tpc
+Cloudera 安全向导启用Kerberos
+注意：不要使用Use Default Kerberos Principals
+Kerberos 添加测试账户：
+kadmin.local
+addprinc  test
+
+Cloudera 自动生成 CDHkeytab文件
+
+
