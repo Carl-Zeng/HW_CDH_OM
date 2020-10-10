@@ -333,4 +333,206 @@ Hue中授权是以Hue中的账户列表为基础了，这些账号与Linux系统
 需要在Hue中手动创建与Linux账户对应的Hue账号。然后再以特定的账号登录系统进行授权操作。
 
 
+5 LDAP集成部署
+openLDAP常用名词解释:
+   o– organization（组织-公司）
+   ou – organization unit（组织单元/部门）
+   c - countryName（国家）
+   dc - domainComponent（域名组件）
+   sn – suer name（真实名称）
+cn - common name（常用名称）
+dn - distinguished name（专有名称）
+5.1 LDAP本地安装
+参考链接; https://blog.csdn.net/dockj/article/details/82392263
+https://www.sohu.com/a/284300312_283613
+https://www.cnblogs.com/duaner92/p/9931156.html
+安装参考:
+https://blog.csdn.net/dengchenrong/article/details/88389947
+
+管理员dc组织：
+com  AAS  admin
+用户：
+com AAS Users
+用户组：
+com  AAS  Group 
+在cloudera01节点安装openLDAP
+yum -y install openldap openldap-clients openldap-servers
+检查版本信息
+lapd –VV
+@(#) $OpenLDAP: slapd 2.4.44 (Jan 29 2019 17:42:45) $
+        mockbuild@x86-01.bsys.centos.org:/builddir/build/BUILD/openldap-2.4.44/openldap-2.4.44/servers/slapd
+修改管理员密码
+slappasswd  -s AAS@123
+{SSHA}pzsWDd6grmlog23Im6PDEIO0lGF3Z2Z6
+
+修改olcDatabase={2}hdb.ldif文件
+修改olcDatabase={2}hdb.ldif文件,对于该文件增加root账户信息
+# AUTO-GENERATED FILE - DO NOT EDIT!! Use ldapmodify.
+# CRC32 1683967e
+dn: olcDatabase={2}hdb
+objectClass: olcDatabaseConfig
+objectClass: olcHdbConfig
+olcDatabase: {2}hdb
+olcDbDirectory: /var/lib/ldap
+#增加admin账户域前缀
+olcSuffix: dc=AAS,dc=com
+#管理员账户
+olcRootDN: cn=admin,dc=AAS,dc=com
+#管理员密码
+olcRootPW: {SSHA}pzsWDd6grmlog23Im6PDEIO0lGF3Z2Z6
+olcDbIndex: objectClass eq,pres
+olcDbIndex: ou,cn,mail,surname,givenname eq,pres,sub
+structuralObjectClass: olcHdbConfig
+entryUUID: 02a64522-6feb-103a-971b-37eb88ab11a1
+creatorsName: cn=config
+createTimestamp: 20200811065247Z
+entryCSN: 20200811065247.666681Z#000000#000#000000
+modifiersName: cn=config
+modifyTimestamp: 20200811065247Z
+
+修改olcDatabase={1}monitor.ldif文件，增加管理员信息
+# AUTO-GENERATED FILE - DO NOT EDIT!! Use ldapmodify.
+# CRC32 87e34df8
+dn: olcDatabase={1}monitor
+objectClass: olcDatabaseConfig
+olcDatabase: {1}monitor
+#访问目录，添加管理员信息
+olcAccess: {0}to * by dn.base="gidNumber=0+uidNumber=0,cn=peercred,cn=extern
+ al,cn=auth" read by dn.base="cn=admin,dc=AAS,dc=com" read by * none
+structuralObjectClass: olcDatabaseConfig
+entryUUID: 02a63de8-6feb-103a-971a-37eb88ab11a1
+creatorsName: cn=config
+createTimestamp: 20200811065247Z
+entryCSN: 20200811065247.666496Z#000000#000#000000
+modifiersName: cn=config
+modifyTimestamp: 20200811065247Z
+
+
+验证配置是否准确
+slaptest –u
+5f3265a1 ldif_read_file: checksum error on "/etc/openldap/slapd.d/cn=config/olcDatabase={1}monitor.ldif"
+5f3265a1 ldif_read_file: checksum error on "/etc/openldap/slapd.d/cn=config/olcDatabase={2}hdb.ldif"
+config file testing succeeded
+
+启动OpenLDAP服务
+//开始ldap
+systemctl enable slapd
+//启动ldap
+systemctl start slapd
+//查看ldap的状态
+systemctl status slapd
+
+配置OpenLDAP数据库
+
+上传kerber相关schema
+kerberos.openldap.ldif
+kerberos.schema
+加载schema，编辑配置文件，添加如下信息
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/core.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/corba.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/cosine.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/dyngroup.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/inetorgperson.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/java.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/kerberos.openldap.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/misc.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/nis.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/openldap.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/ppolicy.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/collective.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/duaconf.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f  /etc/openldap/schema/pmi.ldif
+初始化管理员账户
+配置init_admin.ldif
+dn: dc=AAS,dc=com
+objectClass: top
+objectClass: dcObject
+objectclass: organization
+o: AAS.com
+dc: AAS
+
+dn: ou=Users,dc=AAS,dc=com
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=group,dc=AAS,dc=com
+objectClass: organizationalUnit
+ou: group
+
+dn: cn=admin,dc=AAS,dc=com
+objectClass: organizationalRole
+cn: admin
+description: Directory Administrator
+
+$ ldapadd  -x -D cn=admin,dc=AAS,dc=com -W -f init_admin.ldif
+Enter LDAP Password:
+adding new entry "dc=AAS,dc=com"
+adding new entry "ou=Users,dc=AAS,dc=com"
+adding new entry "ou=group,dc=AAS,dc=com"
+adding new entry "cn=admin,dc=AAS,dc=com"
+
+修改日志配置级别
+dn: cn=config
+changetype: modify
+add: olcLogLevel
+olcLogLevel: 32
+
+$ldapmodify -Y EXTERNAL -H ldapi:/// -f log.ldif
+SASL/EXTERNAL authentication started
+SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+SASL SSF: 0
+modifying entry "cn=config"
+
+执行如下命令
+mkdir -p /var/log/slapd
+chown ldap:ldap /var/log/slapd/
+vim /etc/rsyslog.conf
+echo "local4.* /var/log/slapd/slapd.log" >> /etc/rsyslog.conf
+systemctl restart rsyslog
+systemctl restart slapd
+
+5.2本地账户导入到LDAP
+安装工具
+yum install migrationtools -y
+修改默认域/usr/share/migrationtools/migrate_common.ph
+# Default DNS domain
+$DEFAULT_MAIL_DOMAIN = "AAS.com";
+# Default base
+$DEFAULT_BASE = "dc=AAS,dc=com";
+
+导出账户信息
+cat /etc/passwd > people
+cat /etc/group > group
+
+使用migrationtools工具生成用户和组ldif文件
+/usr/share/migrationtools/migrate_passwd.pl people people.ldif
+/usr/share/migrationtools/migrate_group.pl group group.ldif
+注意：这里people.ldif文件中，user的默认组织是People，需要改成与当前系统匹配的User
+如：
+dn: uid=tpc,ou=Users,dc=AAS,dc=com
+
+导入到LDAP中
+ldapadd -x -W -D "cn=admin,dc=AAS,dc=com" -f people.ldif
+ldapadd -x -W -D "cn=admin,dc=AAS,dc=com" -f group.ldif
+
+查看导入结果
+ldapsearch -x -H ldap://172.19.2.184:389 -b ou=Group,dc=AAS,dc=com
+ldapsearch -x -H ldap://172.19.2.184:389 -b ou=users,dc=AAS,dc=com
+
+5.3 Hue集成LDAP测试
+配置Hue的LDAP参数:
+backend: desktop.auth.backend.LdapBackend
+ldap_url: ldap://cloudera01.AAS.com:389
+ldap_username_pattern: uid=<username>,ou=Users,dc=AAS,dc=com
+create_users_on_login: true
+search_bind_authentication: true
+base_dn: dc=AAS,dc=com
+bind_dn: cn=admin,dc=AAS,dc=com
+bind_password: AAS@123
+user_name_attr: uid
+group_name_attr: cn
+配置相关参数后重新启动Hue
+在LDAP中创建账户hueldap4/hueldap.
+可以直接登录为Hue普通用户。
+
 
