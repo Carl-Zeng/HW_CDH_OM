@@ -358,7 +358,7 @@ com  AAS  Group
 在cloudera01节点安装openLDAP
 yum -y install openldap openldap-clients openldap-servers
 检查版本信息
-lapd –VV
+slapd –VV
 @(#) $OpenLDAP: slapd 2.4.44 (Jan 29 2019 17:42:45) $
         mockbuild@x86-01.bsys.centos.org:/builddir/build/BUILD/openldap-2.4.44/openldap-2.4.44/servers/slapd
 修改管理员密码
