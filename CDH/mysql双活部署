@@ -159,12 +159,23 @@ c.两个节点编写脚本/etc/keepalived/ka.sh
 MYSQL_HOST=localhost       #本地mysql
 MYSQL_USER=root           #用户
 MYSQL_PASSWORD=Huawei   #密码
+LOG_SIZE=104857600       #100m,默认日志大小。
+log=/etc/keepalived/keepalived.log
+
 
 while(( 1 == 1 ))
 do
         sleep 3s
         currentTime=`date "+%Y-%m-%d %H:%M:%S"`
         echo $currentTime
+        
+        #fresh log file 
+        log_size_current=`wc -c /etc/log/tmp.log  | awk -F ' ' '{print $1}'`
+        if (( ${log_size_current} > ${LOG_SIZE}  ));then
+        if [ -f ${log}_2 ] ;then
+            rm -rf ${log}_*
+        fi
+        mv ${log}  ${log}_2
         mysql -h $MYSQL_HOST -u $MYSQL_USER -p$MYSQL_PASSWORD -e "show status;" >> /dev/null 2>&1                #判断mysql是否可用。
         if [ $? == 0 ]
         then
