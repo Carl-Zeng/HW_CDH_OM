@@ -9,4 +9,4 @@ Flink默认路径为本地路径，要指定HDFS全路径。
 $ echo "stop" | ./bin/yarn-session.sh -id application_1609901208436_0011
 
 
-hdfs://cscloud-rs-hadoop273.huawei.com:8020/tmp/data
+
