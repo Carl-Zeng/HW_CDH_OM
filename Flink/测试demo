@@ -1,0 +1,6 @@
+
+启动一个Flink集群
+flink-yarn-session  -nm Flink-test -d  -jm 3072 -tm 32768 -n 7 -s 8
+
+关闭Flink on yarn 集群
+$ echo "stop" | ./bin/yarn-session.sh -id application_1607330052059_0136
