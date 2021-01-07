@@ -2,11 +2,11 @@ CDH 在yarn上启动一个Flink集群
 flink-yarn-session  -nm Flink-test -d  -jm 3072 -tm 32768 -n 7 -s 8
 
 将任务提交到Flink集群
-flink run  -c com.flink.batch.TestWordcount maven-test-0.0.1-SNAPSHOT.jar hdfs://hostname:8020/tmp/data    hdfs://hostname:8020/tmp/wordcount
+flink run  -yid application_1609901208436_0011   -c com.flink.batch.TestWordcount maven-test-0.0.1-SNAPSHOT.jar hdfs://hostname:8020/tmp/data    hdfs://hostname:8020/tmp/wordcount
 Flink默认路径为本地路径，要指定HDFS全路径。
 
 关闭Flink on yarn 集群
-$ echo "stop" | ./bin/yarn-session.sh -id application_1607330052059_0136
+$ echo "stop" | ./bin/yarn-session.sh -id application_1609901208436_0011
 
 
 hdfs://cscloud-rs-hadoop273.huawei.com:8020/tmp/data
