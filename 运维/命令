@@ -1,0 +1,6 @@
+1 Linux命令执行过程追踪
+$ strace  cmd
+可以查看cmd执行的详细过程 
+
+2 按内容过滤文档
+$find -type f | xargs grep  ***
