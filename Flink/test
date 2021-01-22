@@ -37,6 +37,9 @@ watermark算法调整
 
 Hiv维表关联
 基于flink的实时数仓架构设计
+Flink Tash划分逻辑；
+Flink资源申请与管理；
+Flink内部数据管理机制。
 
 
 
