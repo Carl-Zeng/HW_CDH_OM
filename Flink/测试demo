@@ -1,3 +1,18 @@
+CDH集成Flink
+1 下载Flink parcels；
+2 安装csd jar
+下载地址：http://archive.cloudera.com/csa/1.0.0.0/csd/FLINK-1.9.0-csa1.0.0.0-cdh6.3.0.jar	
+放置目录：
+cloudera-server节点 ： /opt/cloudera/csd
+3 重启服务
+service cloudera-scm-server  restart
+
+
+
+
+
+
+
 1 CDH 在yarn上启动一个Flink集群
 flink-yarn-session  -nm Flink-test -d  -jm 3072 -tm 32768 -n 7 -s 8
 
